@@ -65,6 +65,9 @@
     .share-dialog::backdrop { background: rgba(13, 31, 24, .55); }
     .share-dialog h2 { margin: 0 0 8px; font-size: 18px; }
     .share-dialog p { color: #667269; font-size: 12px; line-height: 1.6; }
+    .share-qr-wrap { display: grid; justify-items: center; gap: 6px; margin: 12px auto 8px; }
+    .share-qr { width: 224px; height: 224px; max-width: 100%; padding: 8px; border: 1px solid #e5eae5; border-radius: 8px; background: white; }
+    .share-qr-status { color: #667269; font-size: 11px; text-align: center; }
     .share-url { width: 100%; height: 40px; margin: 7px 0 12px; padding: 0 10px; border: 1px solid #dfe5df; border-radius: 5px; font: 12px ui-monospace, monospace; }
     .share-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
     .share-dialog-actions button, .share-dialog-actions a { min-height: 38px; padding: 8px 12px; border: 0; border-radius: 5px; color: white; background: var(--forest); font: inherit; text-decoration: none; cursor: pointer; }
@@ -116,7 +119,9 @@
     .showcase-button { min-height: 49px; padding: 10px 13px; border: 1px solid #dfe5df; border-radius: 6px; color: var(--forest); background: white; font-size: 12px; font-weight: 600; white-space: nowrap; }
     .showcase-button:hover:not(:disabled) { background: #f3f7f2; }
     .showcase-button:disabled { cursor: not-allowed; opacity: .45; }
-    .showcase-overlay { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; width: 100%; min-height: 100vh; min-height: 100dvh; padding: 7vh 6vw 11vh; overflow: hidden; border: 0; color: var(--showcase-color, var(--lime)); background-color: var(--forest-deep); background-image: radial-gradient(ellipse at 50% 42%, rgba(80,132,91,.2), transparent 58%), linear-gradient(135deg, #102d26 0%, #174a3d 56%, #0c241f 100%); text-align: center; cursor: pointer; }
+    .showcase-overlay { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; width: 100%; min-height: 100vh; min-height: 100dvh; padding: 7vh 6vw 11vh; overflow: hidden; border: 0; color: var(--showcase-color, var(--lime)); background-color: var(--forest-deep); background-image: radial-gradient(ellipse at 50% 42%, rgba(80,132,91,.2), transparent 58%), linear-gradient(135deg, #102d26 0%, #174a3d 56%, #0c241f 100%); text-align: center; cursor: pointer; opacity: 0; transition: opacity .32s ease; }
+    .showcase-overlay.is-screen-visible { opacity: 1; }
+    .showcase-overlay.is-screen-exiting { opacity: 0; pointer-events: none; }
     .showcase-overlay::after { position: fixed; inset: 14px; border: 1px solid rgba(231,241,225,.2); content: ""; pointer-events: none; }
     .showcase-overlay[hidden] { display: none; }
     .showcase-stage { position: relative; z-index: 1; display: grid; justify-items: center; align-content: center; gap: clamp(16px, 3vh, 30px); width: min(100%, 1120px); min-height: min(74vh, 760px); pointer-events: none; }
@@ -128,22 +133,33 @@
     .showcase-intro-image[hidden] { display: none; }
     @media (prefers-reduced-motion: reduce) { .showcase-intro-image.is-fading-out, .showcase-intro-image.is-fading-in { animation-duration: .01ms; } }
     .showcase-word { display: block; max-width: 100%; max-height: 56vh; overflow-wrap: anywhere; font-family: "Kanit", sans-serif; font-size: clamp(54px, 11vw, 150px); font-weight: 600; line-height: 1.08; text-shadow: 0 3px 18px rgba(0,0,0,.62), 0 1px 3px rgba(0,0,0,.85); }
-    .showcase-hint { position: fixed; bottom: max(28px, env(safe-area-inset-bottom)); left: 50%; z-index: 21; color: rgba(248,250,242,.8); font-size: 13px; transform: translateX(-50%); pointer-events: none; }
+    .showcase-overlay.is-timing .showcase-stage { position: fixed; top: calc(54% - clamp(110px, 13vw, 190px)); left: 50%; width: calc(100vw - 40px); min-height: 0; gap: 0; align-content: start; transform: translateX(-50%); }
+    .showcase-overlay.is-timing .showcase-word { max-height: 14vh; font-size: clamp(18px, 2.5vw, 36px); font-weight: 500; line-height: 1.2; }
     .stopwatch-panel { position: fixed; right: 16px; bottom: max(20px, env(safe-area-inset-bottom)); left: 16px; z-index: 22; display: grid; justify-items: center; gap: 5px; pointer-events: none; }
     .stopwatch-panel[hidden] { display: none; }
-    .stopwatch-display { position: fixed; top: 62%; left: 50%; z-index: 23; display: block; box-sizing: border-box; width: min(88vw, 680px); min-width: 0; max-width: calc(100vw - 24px); color: white; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: clamp(56px, 8vw, 92px); font-weight: 700; font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; line-height: 1; text-align: center; white-space: nowrap; text-shadow: 0 2px 6px rgba(0,0,0,.9); transform: translateX(-50%); }
-    .stopwatch-display.is-countdown-warning { color: #ff3030; text-shadow: none; animation: timer-warning .3s steps(2, end) infinite; }
-    .stopwatch-display.is-countdown-expired { color: #ff3030; text-shadow: none; animation: timer-expired 1s steps(2, end) infinite; }
-    @keyframes timer-warning { 0%, 100% { opacity: 1; } 50% { opacity: .2; } }
-    @keyframes timer-expired { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
-    @media (prefers-reduced-motion: reduce) { .stopwatch-display.is-countdown-warning, .stopwatch-display.is-countdown-expired { animation: none; opacity: 1; } }
-    .stopwatch-actions { display: flex; gap: 8px; pointer-events: auto; }
-    .stopwatch-button { min-width: 124px; min-height: 48px; padding: 9px 15px; border: 1px solid rgba(255,255,255,.55); border-radius: 6px; color: #15241d; background: rgba(255,255,255,.94); font-size: 14px; font-weight: 600; box-shadow: 0 4px 16px rgba(0,0,0,.2); }
+    .stopwatch-display { position: fixed; top: 54%; left: 50%; z-index: 23; display: block; box-sizing: border-box; width: calc(100vw - 32px); min-width: 0; max-width: none; color: white; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: clamp(56px, 18vw, 220px); font-weight: 700; font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; line-height: 1; text-align: center; white-space: nowrap; text-shadow: 0 2px 6px rgba(0,0,0,.9); transform: translate(-50%, -50%); opacity: 0; transition: opacity .32s ease; }
+    .stopwatch-panel.timer-visible .stopwatch-display { opacity: 1; }
+    .stopwatch-display.is-countdown-warning { color: #ff3030; text-shadow: 0 0 12px rgba(255,48,48,.35); }
+    .stopwatch-display.is-countdown-expired { color: #ff3030; text-shadow: 0 0 18px rgba(255,48,48,.55); animation: timer-heartbeat 1.2s ease-in-out infinite; }
+    @keyframes timer-heartbeat { 0%, 100% { opacity: 1; } 10% { opacity: .35; } 20% { opacity: 1; } 32% { opacity: .28; } 46%, 75% { opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) { .stopwatch-display.is-countdown-expired { animation: none; opacity: 1; } }
+    .showcase-word { transition: opacity .18s ease, transform .18s ease; }
+    .showcase-word.is-fading-out { opacity: 0; transform: translateY(8px) scale(.985); }
+    .showcase-word.is-fading-in { animation: keyword-fade-in .42s ease both; }
+    @keyframes keyword-fade-in { from { opacity: 0; transform: translateY(12px) scale(.99); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    @media (prefers-reduced-motion: reduce) {
+      .showcase-overlay, .stopwatch-display, .showcase-word, .stopwatch-actions { transition-duration: .01ms !important; }
+      .showcase-word.is-fading-in { animation-duration: .01ms; }
+      .showcase-intro-image.is-fading-out, .showcase-intro-image.is-fading-in { animation-duration: .01ms; }
+    }
+    .stopwatch-actions { position: fixed; bottom: max(24px, env(safe-area-inset-bottom)); z-index: 25; display: flex; gap: 6px; padding: 5px; border: 1px solid rgba(255,255,255,.22); border-radius: 8px; background: rgba(10,24,20,.38); opacity: 0; transform: translateY(8px); transition: opacity .2s ease, transform .2s ease; pointer-events: none; }
+    .stopwatch-panel.controls-visible .stopwatch-actions, .stopwatch-panel:focus-within .stopwatch-actions { opacity: 1; transform: none; pointer-events: auto; }
+    .stopwatch-button { min-width: 0; min-height: 32px; padding: 5px 9px; border: 1px solid rgba(255,255,255,.42); border-radius: 5px; color: #15241d; background: rgba(255,255,255,.9); font-size: 11px; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
     .stopwatch-button:hover { background: white; }
-    .stopwatch-button.reset { min-width: 92px; color: white; background: rgba(20,35,29,.72); }
-    .stopwatch-button.save { min-width: 160px; color: #15241d; background: var(--lime); }
+    .stopwatch-button.reset { color: white; background: rgba(20,35,29,.72); }
+    .stopwatch-button.save { color: #15241d; background: var(--lime); }
     .stopwatch-button:disabled { cursor: default; opacity: .65; }
-    .stopwatch-status { min-height: 18px; color: white; font-size: 12px; text-shadow: 0 2px 9px rgba(0,0,0,.9); }
+    .stopwatch-status { display: none; }
     .list-panel, .manage-panel { overflow: hidden; border: 1px solid #e5eae5; border-radius: 8px; background: var(--paper); }
     .panel-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 17px; border-bottom: 1px solid #edf0ec; }
     .panel-heading h2 { margin: 0; font-size: 13px; font-weight: 600; }
@@ -208,12 +224,11 @@
       .undo-button { min-width: 80px; padding-inline: 10px; }
       .showcase-button { padding-inline: 9px; font-size: 10px; }
       .stopwatch-panel { right: 12px; bottom: max(14px, env(safe-area-inset-bottom)); left: 12px; gap: 4px; }
-      .stopwatch-display { width: min(92vw, 680px); font-size: clamp(46px, 14vw, 68px); }
-      .stopwatch-actions { justify-content: center; gap: 5px; width: 100%; }
-      .stopwatch-button { min-width: 0; min-height: 42px; padding-inline: 9px; font-size: 12px; }
-      .stopwatch-button.reset { min-width: 64px; }
-      .stopwatch-button.save { min-width: 112px; }
-      .stopwatch-status { font-size: 10px; }
+      .showcase-overlay.is-timing .showcase-stage { top: calc(54% - 110px); width: calc(100vw - 28px); }
+      .showcase-overlay.is-timing .showcase-word { font-size: clamp(17px, 4.5vw, 24px); }
+      .stopwatch-display { width: calc(100vw - 20px); font-size: clamp(46px, 17vw, 112px); }
+      .stopwatch-actions { justify-content: center; gap: 4px; }
+      .stopwatch-button { min-height: 30px; padding-inline: 7px; font-size: 10px; }
     }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; } }
   </style>
@@ -343,6 +358,10 @@
   <dialog id="shareDialog" class="share-dialog" aria-labelledby="shareDialogTitle">
     <h2 id="shareDialogTitle">ลิงก์แชร์ผลการสุ่ม</h2>
     <p>ผู้ที่มีลิงก์นี้จะเห็นผลล่าสุดและการเปลี่ยนแปลงแบบเรียลไทม์</p>
+    <div class="share-qr-wrap">
+      <canvas id="shareQr" class="share-qr" role="img" aria-label="QR Code สำหรับเปิดลิงก์ดูผล"></canvas>
+      <span id="shareQrStatus" class="share-qr-status" role="status" aria-live="polite">กำลังสร้าง QR Code…</span>
+    </div>
     <label class="sr-only" for="shareUrl">ลิงก์แชร์</label>
     <input id="shareUrl" class="share-url" type="url" readonly>
     <div class="share-dialog-actions">
@@ -357,7 +376,6 @@
       <span id="showcaseWord" class="showcase-word"></span>
     </span>
   </button>
-  <span id="showcaseHint" class="showcase-hint" hidden>กด Spacebar เพื่อเริ่ม</span>
   <section id="stopwatchPanel" class="stopwatch-panel" aria-label="นาฬิกาจับเวลา" hidden>
     <output id="stopwatchDisplay" class="stopwatch-display" aria-live="off">00.00.00</output>
     <div class="stopwatch-actions">
@@ -382,6 +400,8 @@
       let introFadeTimer = null;
       let showcaseMode = 'closed';
       let rollingTimer = null;
+      let showcaseTransitionTimer = null;
+      let showcaseCloseTimer = null;
       let rollingId = null;
       let rollingIndex = -1;
       let stopwatchElapsed = 0;
@@ -389,8 +409,10 @@
       let stopwatchInterval = null;
       let stopwatchFinalized = false;
       let stopwatchWasStarted = false;
+      let stopwatchControlsTimer = null;
       let reportSyncTimer = null;
       let reportCreatePromise = null;
+      let qrCodeLibraryPromise = null;
 
       const elements = {
         eventName: document.querySelector('#eventName'), remainingCount: document.querySelector('#remainingCount'),
@@ -402,7 +424,6 @@
         timerSetupSummary: document.querySelector('#timerSetupSummary'),
         showcaseButton: document.querySelector('#showcaseButton'), showcaseOverlay: document.querySelector('#showcaseOverlay'),
         showcaseWord: document.querySelector('#showcaseWord'), showcaseColor: document.querySelector('#showcaseColor'),
-        showcaseHint: document.querySelector('#showcaseHint'),
         stopwatchPanel: document.querySelector('#stopwatchPanel'), stopwatchDisplay: document.querySelector('#stopwatchDisplay'),
         stopwatchToggle: document.querySelector('#stopwatchToggle'), stopwatchReset: document.querySelector('#stopwatchReset'),
         stopwatchSave: document.querySelector('#stopwatchSave'), stopwatchStatus: document.querySelector('#stopwatchStatus'),
@@ -420,6 +441,7 @@
         shareUrl: document.querySelector('#shareUrl'), contestantType: document.querySelector('#contestantType'),
         contestantCount: document.querySelector('#contestantCount'), contestantRoundLabel: document.querySelector('#contestantRoundLabel'),
         contestantRangePreview: document.querySelector('#contestantRangePreview'),
+        shareQr: document.querySelector('#shareQr'), shareQrStatus: document.querySelector('#shareQrStatus'),
         roundHistoryList: document.querySelector('#roundHistoryList'), roundHistoryStatus: document.querySelector('#roundHistoryStatus'),
         refreshRoundHistory: document.querySelector('#refreshRoundHistory'), clearRoundHistory: document.querySelector('#clearRoundHistory')
       };
@@ -555,12 +577,31 @@
           elements.shareUrl.value = report.href;
           document.querySelector('#openSharedResults').href = report.href;
           elements.shareDialog.showModal();
+          renderShareQr(report.href);
         } catch (error) {
           console.error('Unable to create the Supabase share link', error);
           showToast('เชื่อมต่อ Supabase ไม่สำเร็จ ตรวจสอบการตั้งค่าและอินเทอร์เน็ต');
         } finally {
           elements.shareReportButton.disabled = false;
           elements.shareReportButton.textContent = 'ดูผลการสุ่ม';
+        }
+      }
+
+      async function renderShareQr(url) {
+        elements.shareQrStatus.textContent = 'กำลังสร้าง QR Code…';
+        try {
+          qrCodeLibraryPromise ||= import('https://esm.sh/qrcode@1.5.4').then(module => module.default || module);
+          const QRCode = await qrCodeLibraryPromise;
+          await QRCode.toCanvas(elements.shareQr, url, {
+            width: 224,
+            margin: 2,
+            errorCorrectionLevel: 'M',
+            color: { dark: '#174a3d', light: '#ffffff' }
+          });
+          elements.shareQrStatus.textContent = 'สแกน QR Code เพื่อเปิดหน้าผลการสุ่ม';
+        } catch (error) {
+          console.error('Unable to generate share QR code', error);
+          elements.shareQrStatus.textContent = 'สร้าง QR Code ไม่สำเร็จ · ใช้ลิงก์ด้านล่างได้';
         }
       }
 
@@ -904,24 +945,57 @@
         introFadeTimer = null;
         resetStopwatch();
         elements.stopwatchPanel.hidden = true;
+        elements.stopwatchPanel.classList.remove('controls-visible');
+        elements.showcaseOverlay.classList.remove('is-timing');
         elements.showcaseWord.textContent = '';
+        elements.showcaseWord.classList.remove('is-fading-in', 'is-fading-out');
         elements.introMediaImage.classList.remove('is-fading-out', 'is-fading-in');
         elements.introMediaImage.hidden = !introMediaObjectUrl;
-        elements.showcaseHint.textContent = 'กด Spacebar เพื่อเริ่มสุ่มคีย์เวิร์ด';
-        elements.showcaseHint.hidden = false;
+        if (introMediaObjectUrl) requestAnimationFrame(() => requestAnimationFrame(() => elements.introMediaImage.classList.add('is-fading-in')));
         elements.showcaseOverlay.setAttribute('aria-label', 'พื้นหลังพร้อมแล้ว กด Space เพื่อเริ่มสุ่มคำ กด Escape เพื่อออก');
+        clearTimeout(showcaseCloseTimer);
+        showcaseCloseTimer = null;
+        elements.showcaseOverlay.classList.remove('is-screen-exiting');
         elements.showcaseOverlay.hidden = false;
+        void elements.showcaseOverlay.offsetWidth;
+        elements.showcaseOverlay.classList.add('is-screen-visible');
         showcaseMode = 'ready';
         try {
           if (document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen();
         } catch { /* The fixed overlay still fills the browser viewport. */ }
-        if (showcaseMode !== 'closed') elements.showcaseOverlay.focus({ preventScroll: true });
+        if (showcaseMode === 'ready') elements.showcaseOverlay.focus({ preventScroll: true });
       }
 
       function resumeShowcaseRoll() {
-        if (!state.remaining.length || !['ready', 'stopped'].includes(showcaseMode)) return;
+        if (!state.remaining.length) return;
+        const continueAfterTiming = showcaseMode === 'timing' && stopwatchFinalized;
+        if (showcaseMode !== 'ready' && !continueAfterTiming) return;
+        if (continueAfterTiming) {
+          showcaseMode = 'toRoll';
+          elements.showcaseWord.classList.remove('is-fading-in');
+          elements.showcaseWord.classList.add('is-fading-out');
+          elements.stopwatchPanel.classList.remove('controls-visible');
+          elements.stopwatchPanel.classList.remove('timer-visible');
+          showcaseTransitionTimer = setTimeout(() => {
+            if (showcaseMode !== 'toRoll') return;
+            showcaseTransitionTimer = null;
+            elements.showcaseWord.classList.remove('is-fading-out');
+            elements.stopwatchPanel.hidden = true;
+            elements.stopwatchPanel.classList.remove('controls-visible');
+            elements.showcaseOverlay.classList.remove('is-timing');
+            beginShowcaseRoll();
+          }, 180);
+          return;
+        }
+        beginShowcaseRoll();
+      }
+
+      function beginShowcaseRoll() {
         resetStopwatch();
         elements.stopwatchPanel.hidden = true;
+        elements.stopwatchPanel.classList.remove('controls-visible');
+        elements.stopwatchPanel.classList.remove('timer-visible');
+        elements.showcaseOverlay.classList.remove('is-timing');
         showcaseMode = 'rolling';
         if (introMediaObjectUrl && !elements.introMediaImage.hidden) {
           elements.introMediaImage.classList.add('is-fading-out');
@@ -934,8 +1008,6 @@
         } else {
           elements.introMediaImage.hidden = true;
         }
-        elements.showcaseHint.textContent = 'กด Spacebar เพื่อหยุดเลือกคำ';
-        elements.showcaseHint.hidden = false;
         rollingIndex = -1;
         elements.showcaseOverlay.setAttribute('aria-live', 'off');
         elements.showcaseOverlay.setAttribute('aria-label', 'คำที่กำลังหมุน คลิกหรือกด Space เพื่อหยุด กด Escape เพื่อออก');
@@ -945,32 +1017,78 @@
 
       function toggleShowcaseRoll() {
         if (showcaseMode === 'rolling') stopShowcaseRoll();
-        else if (showcaseMode === 'ready' || showcaseMode === 'stopped') resumeShowcaseRoll();
+        else if (showcaseMode === 'ready') resumeShowcaseRoll();
+      }
+
+      function enterTimingMode() {
+        if (showcaseMode !== 'selected') return;
+        clearTimeout(stopwatchControlsTimer);
+        stopwatchControlsTimer = null;
+        showcaseMode = 'toTiming';
+        fadeKeywordOut(() => {
+          if (showcaseMode !== 'toTiming') return;
+          resetStopwatch();
+          elements.stopwatchPanel.hidden = false;
+          elements.stopwatchPanel.classList.remove('controls-visible', 'timer-visible');
+          elements.showcaseOverlay.classList.add('is-timing');
+          showcaseMode = 'timing';
+          elements.showcaseOverlay.setAttribute('aria-label', `กำลังจับเวลาสำหรับคำ ${elements.showcaseWord.textContent}`);
+          fadeKeywordIn();
+          requestAnimationFrame(() => requestAnimationFrame(() => elements.stopwatchPanel.classList.add('timer-visible')));
+        });
       }
 
       function returnToIntro() {
-        if (showcaseMode !== 'stopped') return;
+        const canReturn = showcaseMode === 'selected' || (showcaseMode === 'timing' && stopwatchFinalized);
+        if (!canReturn) return;
+        clearTimeout(showcaseTransitionTimer);
+        showcaseTransitionTimer = null;
+        clearTimeout(stopwatchControlsTimer);
+        stopwatchControlsTimer = null;
         clearTimeout(introFadeTimer);
         introFadeTimer = null;
-        resetStopwatch();
-        elements.stopwatchPanel.hidden = true;
-        elements.showcaseWord.textContent = '';
-        elements.introMediaImage.classList.remove('is-fading-out');
-        elements.introMediaImage.hidden = !introMediaObjectUrl;
-        if (introMediaObjectUrl) {
-          elements.introMediaImage.classList.remove('is-fading-in');
-          introFadeTimer = setTimeout(() => {
-            elements.introMediaImage.classList.add('is-fading-in');
-            introFadeTimer = null;
-          }, 20);
-        }
-        elements.showcaseHint.textContent = 'กด Spacebar เพื่อเริ่มสุ่มคีย์เวิร์ด';
-        elements.showcaseHint.hidden = false;
-        elements.showcaseOverlay.setAttribute('aria-live', 'off');
-        elements.showcaseOverlay.setAttribute('aria-label', 'พื้นหลังพร้อมแล้ว กด Space เพื่อเริ่มสุ่มคำ กด Escape เพื่อออก');
-        rollingIndex = -1;
-        rollingId = null;
-        showcaseMode = 'ready';
+        showcaseMode = 'toIntro';
+        elements.showcaseWord.classList.remove('is-fading-in');
+        elements.showcaseWord.classList.add('is-fading-out');
+        elements.stopwatchPanel.classList.remove('controls-visible');
+        elements.stopwatchPanel.classList.remove('timer-visible');
+        showcaseTransitionTimer = setTimeout(() => {
+          if (showcaseMode !== 'toIntro') return;
+          showcaseTransitionTimer = null;
+          resetStopwatch();
+          elements.stopwatchPanel.hidden = true;
+          elements.stopwatchPanel.classList.remove('controls-visible', 'timer-visible');
+          elements.showcaseOverlay.classList.remove('is-timing');
+          elements.showcaseWord.classList.remove('is-fading-out');
+          elements.showcaseWord.textContent = '';
+          elements.introMediaImage.classList.remove('is-fading-out', 'is-fading-in');
+          elements.introMediaImage.hidden = !introMediaObjectUrl;
+          if (introMediaObjectUrl) {
+            requestAnimationFrame(() => requestAnimationFrame(() => elements.introMediaImage.classList.add('is-fading-in')));
+          }
+          elements.showcaseOverlay.setAttribute('aria-live', 'off');
+          elements.showcaseOverlay.setAttribute('aria-label', 'พื้นหลังพร้อมแล้ว กด Space เพื่อเริ่มสุ่มคำ กด Escape เพื่อออก');
+          rollingIndex = -1;
+          rollingId = null;
+          showcaseMode = 'ready';
+        }, 180);
+      }
+
+      function fadeKeywordOut(onComplete) {
+        elements.showcaseWord.classList.remove('is-fading-in');
+        elements.showcaseWord.classList.add('is-fading-out');
+        showcaseTransitionTimer = setTimeout(() => {
+          showcaseTransitionTimer = null;
+          elements.showcaseWord.classList.remove('is-fading-out');
+          onComplete();
+        }, 180);
+      }
+
+      function fadeKeywordIn() {
+        elements.showcaseWord.classList.remove('is-fading-out', 'is-fading-in');
+        void elements.showcaseWord.offsetWidth;
+        elements.showcaseWord.classList.add('is-fading-in');
+        setTimeout(() => elements.showcaseWord.classList.remove('is-fading-in'), 450);
       }
 
       function formatStopwatchTime(milliseconds) {
@@ -1010,7 +1128,6 @@
           : elapsed;
         elements.stopwatchDisplay.value = formatStopwatchTime(displayedTime);
         const showCountdownWarning = state.timerMode === 'down'
-          && stopwatchStartedAt !== null
           && displayedTime > 0
           && displayedTime <= 10000;
         elements.stopwatchDisplay.classList.toggle('is-countdown-warning', showCountdownWarning);
@@ -1049,7 +1166,6 @@
           return;
         }
         pauseStopwatch();
-        elements.stopwatchDisplay.classList.remove('is-countdown-warning');
         stopwatchElapsed = Math.round(stopwatchElapsed);
         const word = state.used.find(entry => entry.id === state.currentId);
         if (!word) return;
@@ -1081,13 +1197,29 @@
         updateStopwatch();
       }
 
+      function revealStopwatchControls() {
+        if (elements.stopwatchPanel.hidden || showcaseMode !== 'timing') return;
+        elements.stopwatchPanel.classList.add('controls-visible');
+        clearTimeout(stopwatchControlsTimer);
+        stopwatchControlsTimer = setTimeout(() => {
+          if (!elements.stopwatchPanel.matches(':focus-within')) elements.stopwatchPanel.classList.remove('controls-visible');
+        }, 2200);
+      }
+
       function stopShowcaseRoll() {
         if (showcaseMode !== 'rolling') return;
         clearInterval(rollingTimer);
         rollingTimer = null;
-        showcaseMode = 'stopped';
+        finishShowcaseRoll();
+      }
+
+      function finishShowcaseRoll() {
+        showcaseMode = 'selected';
         resetStopwatch();
-        elements.stopwatchPanel.hidden = false;
+        elements.stopwatchPanel.hidden = true;
+        elements.stopwatchPanel.classList.remove('controls-visible', 'timer-visible');
+        elements.showcaseOverlay.classList.remove('is-timing');
+        elements.showcaseWord.classList.remove('is-fading-in', 'is-fading-out');
         const index = state.remaining.findIndex(word => word.id === rollingId);
         if (index < 0) {
           closeShowcase();
@@ -1103,14 +1235,11 @@
         render();
         scheduleSharedReportSave();
         elements.showcaseWord.textContent = word.text;
+        fadeKeywordIn();
         clearTimeout(introFadeTimer);
         introFadeTimer = null;
         elements.introMediaImage.hidden = true;
         elements.introMediaImage.classList.remove('is-fading-out');
-        elements.showcaseHint.textContent = state.remaining.length
-          ? 'กด Spacebar เพื่อสุ่มคำถัดไป หรือกด Escape เพื่อออก'
-          : 'ไม่มีคำเหลือในคิว · กด Escape เพื่อออก';
-        elements.showcaseHint.hidden = true;
         elements.showcaseOverlay.setAttribute('aria-live', 'polite');
         const nextAction = state.remaining.length
           ? 'คลิกหรือกด Space เพื่อสุ่มคำถัดไป กด Escape เพื่อออก'
@@ -1119,21 +1248,37 @@
       }
 
       function closeShowcase() {
-        showcaseMode = 'closed';
+        if (showcaseMode === 'closed' || showcaseMode === 'closing') return;
+        showcaseMode = 'closing';
+        clearTimeout(showcaseTransitionTimer);
+        showcaseTransitionTimer = null;
+        clearTimeout(stopwatchControlsTimer);
+        stopwatchControlsTimer = null;
         clearInterval(rollingTimer);
         rollingTimer = null;
         clearTimeout(introFadeTimer);
         introFadeTimer = null;
         resetStopwatch();
         elements.stopwatchPanel.hidden = true;
+        elements.stopwatchPanel.classList.remove('controls-visible', 'timer-visible');
+        elements.showcaseOverlay.classList.remove('is-timing');
         elements.introMediaImage.hidden = true;
         elements.introMediaImage.classList.remove('is-fading-out');
-        elements.showcaseHint.hidden = true;
+        elements.showcaseWord.classList.remove('is-fading-in', 'is-fading-out');
         rollingIndex = -1;
         rollingId = null;
-        elements.showcaseOverlay.hidden = true;
+        elements.showcaseOverlay.classList.remove('is-screen-visible');
+        elements.showcaseOverlay.classList.add('is-screen-exiting');
         if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
-        elements.showcaseButton.focus({ preventScroll: true });
+        clearTimeout(showcaseCloseTimer);
+        showcaseCloseTimer = setTimeout(() => {
+          if (showcaseMode !== 'closing') return;
+          elements.showcaseOverlay.hidden = true;
+          elements.showcaseOverlay.classList.remove('is-screen-exiting');
+          showcaseMode = 'closed';
+          showcaseCloseTimer = null;
+          elements.showcaseButton.focus({ preventScroll: true });
+        }, 320);
       }
 
       function undoDraw() {
@@ -1247,22 +1392,47 @@
       });
       elements.showcaseButton.addEventListener('click', startShowcase);
       elements.showcaseOverlay.addEventListener('click', event => {
-        if (event.detail > 0 && showcaseMode !== 'ready') toggleShowcaseRoll();
+        if (event.detail <= 0 || showcaseMode === 'closing' || showcaseMode === 'closed') return;
+        if (showcaseMode === 'ready') { resumeShowcaseRoll(); return; }
+        if (showcaseMode === 'selected') { enterTimingMode(); return; }
+        if (showcaseMode === 'timing' && stopwatchFinalized) { resumeShowcaseRoll(); return; }
+        if (showcaseMode === 'timing' && !elements.stopwatchPanel.classList.contains('controls-visible')) {
+          revealStopwatchControls();
+          return;
+        }
+        if (showcaseMode === 'rolling') stopShowcaseRoll();
+      });
+      document.addEventListener('pointermove', () => {
+        if (showcaseMode === 'timing') revealStopwatchControls();
       });
       elements.stopwatchToggle.addEventListener('click', toggleStopwatch);
       elements.stopwatchReset.addEventListener('click', resetStopwatch);
       elements.stopwatchSave.addEventListener('click', finishStopwatch);
       document.addEventListener('keydown', event => {
-        if (showcaseMode === 'closed') return;
+        if (showcaseMode === 'closed' || showcaseMode === 'closing') return;
         if (event.key === 'Escape') {
           event.preventDefault();
           closeShowcase();
-        } else if (event.target.closest('.stopwatch-panel')) {
-          return;
-        } else if (event.key === 'Enter' && showcaseMode === 'stopped') {
+        } else if (event.key === 'Shift' && showcaseMode === 'timing') {
+          event.preventDefault();
+          if (event.repeat) return;
+          if (stopwatchWasStarted) finishStopwatch();
+          else toggleStopwatch();
+        } else if (event.key === 'Enter' && (showcaseMode === 'selected' || (showcaseMode === 'timing' && stopwatchFinalized))) {
           event.preventDefault();
           if (event.repeat) return;
           returnToIntro();
+        } else if (event.code === 'Space' && showcaseMode === 'selected') {
+          event.preventDefault();
+          if (event.repeat) return;
+          enterTimingMode();
+        } else if (event.code === 'Space' && showcaseMode === 'timing') {
+          event.preventDefault();
+          if (stopwatchFinalized) resumeShowcaseRoll();
+        } else if (event.code === 'Space' && ['toTiming', 'toRoll', 'toIntro'].includes(showcaseMode)) {
+          event.preventDefault();
+        } else if (event.target.closest('.stopwatch-panel')) {
+          return;
         } else if ((event.code === 'Space' || event.key === 'Enter') && showcaseMode !== 'closed') {
           event.preventDefault();
           if (event.repeat) return;
@@ -1270,7 +1440,7 @@
         }
       });
       document.addEventListener('fullscreenchange', () => {
-        if (!document.fullscreenElement && showcaseMode !== 'closed') closeShowcase();
+        if (!document.fullscreenElement && showcaseMode !== 'closed' && showcaseMode !== 'closing') closeShowcase();
       });
       elements.undoButton.addEventListener('click', undoDraw);
       document.querySelector('#resetButton').addEventListener('click', resetRound);
