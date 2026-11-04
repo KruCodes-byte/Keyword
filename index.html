@@ -106,6 +106,9 @@
     .timer-mode-option:has(input:checked) { color: var(--forest); background: white; box-shadow: 0 1px 3px rgba(20,40,30,.12); font-weight: 600; }
     .timer-mode-option input { position: absolute; width: 1px; height: 1px; opacity: 0; }
     .timer-mode-option:has(input:focus-visible) { outline: 2px solid var(--coral); outline-offset: 2px; }
+    .timer-layout-setting { display: grid; gap: 7px; margin-top: 13px; padding-top: 12px; border-top: 1px solid #e2edf5; }
+    .timer-layout-options { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 3px; width: fit-content; max-width: 100%; padding: 3px; border: 1px solid #d7e7f3; border-radius: 6px; background: #f2f8fd; }
+    .timer-layout-options .timer-mode-option { min-height: 32px; }
     .timer-duration-control { display: inline-flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: 7px; color: #525b61; font-size: 11px; }
     .timer-duration-control input { width: 126px; height: 36px; padding: 0 8px; border: 1px solid #dfe5df; border-radius: 5px; font-variant-numeric: tabular-nums; text-align: center; }
     .timer-duration-control input:disabled { color: #9aa39c; background: #f4f6f3; }
@@ -134,11 +137,12 @@
     .showcase-intro-image[hidden] { display: none; }
     @media (prefers-reduced-motion: reduce) { .showcase-intro-image.is-fading-out, .showcase-intro-image.is-fading-in { animation-duration: .01ms; } }
     .showcase-word { display: block; max-width: 100%; max-height: 56vh; overflow-wrap: anywhere; font-family: "Kanit", sans-serif; font-size: clamp(54px, 11vw, 150px); font-weight: 600; line-height: 1.08; text-shadow: 0 3px 18px rgba(0,0,0,.62), 0 1px 3px rgba(0,0,0,.85); }
-    .showcase-overlay.is-timing .showcase-stage { position: fixed; top: calc(54% - clamp(110px, 13vw, 190px)); left: 50%; width: calc(100vw - 40px); min-height: 0; gap: 0; align-content: start; transform: translateX(-50%); }
-    .showcase-overlay.is-timing .showcase-word { max-height: 14vh; font-size: clamp(18px, 2.5vw, 36px); font-weight: 500; line-height: 1.2; }
     .stopwatch-panel { position: fixed; right: 16px; bottom: max(20px, env(safe-area-inset-bottom)); left: 16px; z-index: 22; display: grid; justify-items: center; gap: 5px; pointer-events: none; }
     .stopwatch-panel[hidden] { display: none; }
-    .stopwatch-display { position: fixed; top: 54%; left: 50%; z-index: 23; display: block; box-sizing: border-box; width: calc(100vw - 32px); min-width: 0; max-width: none; color: white; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: clamp(56px, 18vw, 220px); font-weight: 700; font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; line-height: 1; text-align: center; white-space: nowrap; text-shadow: 0 2px 6px rgba(0,0,0,.9); transform: translate(-50%, -50%); opacity: 0; transition: opacity .32s ease; }
+    .stopwatch-display { position: fixed; top: 70%; left: 50%; z-index: 23; display: block; box-sizing: border-box; width: calc(100vw - 32px); min-width: 0; max-width: none; color: white; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: clamp(38px, 8vw, 100px); font-weight: 700; font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; line-height: 1; text-align: center; white-space: nowrap; text-shadow: 0 2px 6px rgba(0,0,0,.9); transform: translate(-50%, -50%); opacity: 0; transition: opacity .32s ease; }
+    .showcase-overlay.is-timing.is-time-large .showcase-stage { position: fixed; top: calc(54% - clamp(110px, 13vw, 190px)); left: 50%; width: calc(100vw - 40px); min-height: 0; gap: 0; align-content: start; transform: translateX(-50%); }
+    .showcase-overlay.is-timing.is-time-large .showcase-word { max-height: 14vh; font-size: clamp(18px, 2.5vw, 36px); font-weight: 500; line-height: 1.2; }
+    .showcase-overlay.is-timing.is-time-large + .stopwatch-panel .stopwatch-display { top: 54%; font-size: clamp(56px, 18vw, 220px); }
     .stopwatch-panel.timer-visible .stopwatch-display { opacity: 1; }
     .stopwatch-display.is-countdown-warning { color: #ff3030; text-shadow: 0 0 12px rgba(255,48,48,.35); }
     .stopwatch-display.is-countdown-expired { color: #ff3030; text-shadow: 0 0 18px rgba(255,48,48,.55); animation: timer-heartbeat 1.2s ease-in-out infinite; }
@@ -226,9 +230,10 @@
       .undo-button { min-width: 80px; padding-inline: 10px; }
       .showcase-button { padding-inline: 9px; font-size: 10px; }
       .stopwatch-panel { right: 12px; bottom: max(14px, env(safe-area-inset-bottom)); left: 12px; gap: 4px; }
-      .showcase-overlay.is-timing .showcase-stage { top: calc(54% - 110px); width: calc(100vw - 28px); }
-      .showcase-overlay.is-timing .showcase-word { font-size: clamp(17px, 4.5vw, 24px); }
-      .stopwatch-display { width: calc(100vw - 20px); font-size: clamp(46px, 17vw, 112px); }
+      .stopwatch-display { width: calc(100vw - 20px); font-size: clamp(34px, 8vw, 58px); }
+      .showcase-overlay.is-timing.is-time-large .showcase-stage { top: calc(54% - 110px); width: calc(100vw - 28px); }
+      .showcase-overlay.is-timing.is-time-large .showcase-word { font-size: clamp(17px, 4.5vw, 24px); }
+      .showcase-overlay.is-timing.is-time-large + .stopwatch-panel .stopwatch-display { top: 54%; font-size: clamp(46px, 17vw, 112px); }
       .stopwatch-actions { justify-content: center; gap: 4px; }
       .stopwatch-button { min-height: 30px; padding-inline: 7px; font-size: 10px; }
     }
@@ -307,6 +312,13 @@
                 <div class="contestant-field"><label for="contestantCount">จำนวนลำดับ</label><input id="contestantCount" type="number" min="1" max="14" step="1" value="14" inputmode="numeric"></div>
               </div>
               <p id="contestantTypeHint" class="contestant-settings-hint">หมายเลขที่ระบบจะกำหนด: <strong id="contestantRangePreview">M1–M14</strong> · แก้ไขได้ก่อนเริ่มสุ่ม</p>
+              <div class="timer-layout-setting">
+                <span class="timer-setup-title">รูปแบบจอจับเวลา</span>
+                <div class="timer-layout-options" role="radiogroup" aria-label="เลือกขนาดคำและเวลา">
+                  <label class="timer-mode-option"><input type="radio" name="timerLayout" value="keyword-large" checked>คำใหญ่กว่าเวลา</label>
+                  <label class="timer-mode-option"><input type="radio" name="timerLayout" value="time-large">เวลาใหญ่ คำอยู่ด้านบน</label>
+                </div>
+              </div>
             </div>
           </section>
           <section class="manage-panel" aria-labelledby="roundHistoryHeading">
@@ -393,7 +405,7 @@
     const supabaseClient = createClient(window.SUPABASE_CONFIG.url, window.SUPABASE_CONFIG.publishableKey);
     (() => {
       const STORAGE_KEY = 'จับคำ.keyword-draw.v1';
-      const initialState = { remaining: [], used: [], history: [], currentId: null, eventName: '', showcaseTextColor: '#8ce7f5', timerMode: 'up', timerDurationMs: 60000, share: null, historyShare: null, eventId: makeUuid(), roundNumber: 1, contestantType: 'M', contestantCount: 14 };
+      const initialState = { remaining: [], used: [], history: [], currentId: null, eventName: '', showcaseTextColor: '#8ce7f5', timerMode: 'up', timerLayout: 'keyword-large', timerDurationMs: 60000, share: null, historyShare: null, eventId: makeUuid(), roundNumber: 1, contestantType: 'M', contestantCount: 14 };
       let state = loadState();
       let activeTab = 'remaining';
       let toastTimer;
@@ -422,7 +434,7 @@
         currentWord: document.querySelector('#currentWord'), currentSubtitle: document.querySelector('#currentSubtitle'),
         wordDisplay: document.querySelector('#wordDisplay'), drawNumber: document.querySelector('#drawNumber'),
         sessionLabel: document.querySelector('#sessionLabel'), drawButton: document.querySelector('#drawButton'),
-        timerModeInputs: [...document.querySelectorAll('input[name="timerMode"]')], timerDuration: document.querySelector('#timerDuration'),
+        timerModeInputs: [...document.querySelectorAll('input[name="timerMode"]')], timerLayoutInputs: [...document.querySelectorAll('input[name="timerLayout"]')], timerDuration: document.querySelector('#timerDuration'),
         timerSetupSummary: document.querySelector('#timerSetupSummary'),
         showcaseButton: document.querySelector('#showcaseButton'), showcaseOverlay: document.querySelector('#showcaseOverlay'),
         showcaseWord: document.querySelector('#showcaseWord'), showcaseColor: document.querySelector('#showcaseColor'),
@@ -472,6 +484,7 @@
           if (!restored.historyShare || typeof restored.historyShare.shareId !== 'string' || typeof restored.historyShare.writerToken !== 'string') restored.historyShare = null;
           else restored.historyShare = { ...restored.historyShare, eventId: restored.eventId };
           if (!['up', 'down'].includes(restored.timerMode)) restored.timerMode = initialState.timerMode;
+          if (!['keyword-large', 'time-large'].includes(restored.timerLayout)) restored.timerLayout = initialState.timerLayout;
           if (!Number.isFinite(saved.timerDurationMs) || saved.timerDurationMs <= 0) {
             const legacyTimerValue = Number(restored.timerMinutes);
             const legacyUnitMs = restored.timerUnit === 'seconds' ? 1000 : 60000;
@@ -837,6 +850,7 @@
         elements.colorValue.textContent = state.showcaseTextColor.toUpperCase();
         elements.showcaseOverlay.style.setProperty('--showcase-color', state.showcaseTextColor);
         elements.timerModeInputs.forEach(input => { input.checked = input.value === state.timerMode; });
+        elements.timerLayoutInputs.forEach(input => { input.checked = input.value === state.timerLayout; });
         elements.timerDuration.value = formatStopwatchTime(state.timerDurationMs);
         elements.timerDuration.disabled = state.timerMode !== 'down';
         elements.timerSetupSummary.textContent = state.timerMode === 'down'
@@ -1045,6 +1059,8 @@
           resetStopwatch();
           elements.stopwatchPanel.hidden = false;
           elements.stopwatchPanel.classList.remove('controls-visible', 'timer-visible');
+          elements.showcaseOverlay.classList.toggle('is-keyword-large', state.timerLayout === 'keyword-large');
+          elements.showcaseOverlay.classList.toggle('is-time-large', state.timerLayout === 'time-large');
           elements.showcaseOverlay.classList.add('is-timing');
           showcaseMode = 'timing';
           elements.showcaseOverlay.setAttribute('aria-label', `กำลังจับเวลาสำหรับคำ ${elements.showcaseWord.textContent}`);
@@ -1277,6 +1293,7 @@
         elements.stopwatchPanel.hidden = true;
         elements.stopwatchPanel.classList.remove('controls-visible', 'timer-visible');
         elements.showcaseOverlay.classList.remove('is-timing');
+        elements.showcaseOverlay.classList.remove('is-keyword-large', 'is-time-large');
         elements.introMediaImage.hidden = true;
         elements.introMediaImage.classList.remove('is-fading-out');
         elements.showcaseWord.classList.remove('is-fading-in', 'is-fading-out');
@@ -1542,6 +1559,11 @@
         persist();
         render();
         updateStopwatch();
+      }));
+      elements.timerLayoutInputs.forEach(input => input.addEventListener('change', () => {
+        if (!input.checked) return;
+        state.timerLayout = input.value;
+        persist();
       }));
       elements.timerDuration.addEventListener('change', event => {
         const durationMs = parseStopwatchTime(event.target.value);
