@@ -79,7 +79,8 @@
           draw.recipientId || '',
           formatTime(draw.timeUsedMs)
         ]);
-        document.querySelector('#eventName').textContent = data.event_name || '';
+        const roundTitle = data.round_name || `รอบที่ ${data.round_number}`;
+        document.querySelector('#eventName').textContent = [data.event_name, roundTitle].filter(Boolean).join(' · ');
         document.querySelector('#drawCount').textContent = `${draws.length} ครั้ง`;
         document.querySelector('#remainingCount').textContent = String(data.remaining_count ?? 0);
         renderRoundOptions(data.rounds || []);
@@ -99,7 +100,7 @@
         rounds.forEach(round => {
           const option = document.createElement('option');
           option.value = round.share_id;
-          option.textContent = `รอบที่ ${round.round_number} · ${round.category}1–${round.category}${round.contestant_count} · ${round.draw_count} คำ`;
+          option.textContent = `${round.round_name || `รอบที่ ${round.round_number}`} · ${round.category}1–${round.category}${round.contestant_count} · ${round.draw_count} คำ`;
           option.selected = round.share_id === shareId;
           roundSelect.append(option);
         });
@@ -144,7 +145,7 @@
             .on('broadcast', { event: 'UPDATE' }, () => loadReport())
             .subscribe(channelStatus => {
               if (channelStatus === 'SUBSCRIBED') {
-                status.textContent = `เชื่อมต่อแบบเรียลไทม์ · รอบที่ ${lastReport.round_number}`;
+                status.textContent = `เชื่อมต่อแบบเรียลไทม์ · ${lastReport.round_name || `รอบที่ ${lastReport.round_number}`}`;
                 status.classList.remove('error');
                 loadReport();
               } else if (channelStatus === 'CHANNEL_ERROR' || channelStatus === 'TIMED_OUT') {

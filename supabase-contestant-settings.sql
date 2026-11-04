@@ -1,5 +1,6 @@
 alter table public.keyword_draw_reports
-  add column if not exists contestant_count integer not null default 14;
+  add column if not exists contestant_count integer not null default 14,
+  add column if not exists round_name text not null default '';
 
 alter table public.keyword_draw_reports
   drop constraint if exists keyword_draw_reports_category_check,
@@ -9,14 +10,22 @@ alter table public.keyword_draw_reports
 
 drop function if exists public.create_keyword_draw_report(uuid, uuid, integer, text, text, text, integer, integer, jsonb);
 drop function if exists public.save_keyword_draw_report(uuid, uuid, integer, text, text, text, integer, integer, jsonb);
+drop function if exists public.create_keyword_draw_report(uuid, uuid, integer, text, integer, text, text, integer, integer, jsonb);
+drop function if exists public.save_keyword_draw_report(uuid, uuid, integer, text, integer, text, text, integer, integer, jsonb);
+drop function if exists public.create_keyword_draw_report(uuid, uuid, integer, text, text, integer, text, text, integer, integer, jsonb);
+drop function if exists public.save_keyword_draw_report(uuid, uuid, integer, text, text, integer, text, text, integer, integer, jsonb);
 drop function if exists public.get_keyword_draw_report(uuid);
 drop function if exists private.create_keyword_draw_report(uuid, uuid, integer, text, text, text, integer, integer, jsonb);
 drop function if exists private.save_keyword_draw_report(uuid, uuid, integer, text, text, text, integer, integer, jsonb);
+drop function if exists private.create_keyword_draw_report(uuid, uuid, integer, text, integer, text, text, integer, integer, jsonb);
+drop function if exists private.save_keyword_draw_report(uuid, uuid, integer, text, integer, text, text, integer, integer, jsonb);
+drop function if exists private.create_keyword_draw_report(uuid, uuid, integer, text, text, integer, text, text, integer, integer, jsonb);
+drop function if exists private.save_keyword_draw_report(uuid, uuid, integer, text, text, integer, text, text, integer, integer, jsonb);
 drop function if exists private.read_keyword_draw_report(uuid);
 
 create or replace function private.create_keyword_draw_report(
-  p_share_id uuid, p_event_id uuid, p_round_number integer, p_category text,
-  p_contestant_count integer, p_writer_token text, p_event_name text,
+  p_share_id uuid, p_event_id uuid, p_round_number integer, p_round_name text,
+  p_category text, p_contestant_count integer, p_writer_token text, p_event_name text,
   p_total_count integer, p_remaining_count integer, p_draws jsonb
 ) returns void
 language plpgsql security definer set search_path = ''
@@ -32,12 +41,13 @@ begin
     raise exception 'invalid report snapshot';
   end if;
   insert into public.keyword_draw_reports(
-    share_id, event_id, round_number, category, contestant_count,
+    share_id, event_id, round_number, round_name, category, contestant_count,
     event_name, total_count, remaining_count, draws
   )
   values (
-    p_share_id, p_event_id, p_round_number, p_category, p_contestant_count,
-    left(coalesce(p_event_name, ''), 100), p_total_count, p_remaining_count, p_draws
+    p_share_id, p_event_id, p_round_number, left(coalesce(p_round_name, ''), 60),
+    p_category, p_contestant_count, left(coalesce(p_event_name, ''), 100),
+    p_total_count, p_remaining_count, p_draws
   );
   insert into private.keyword_draw_report_writers(share_id, writer_token)
   values (p_share_id, p_writer_token);
@@ -45,8 +55,8 @@ end;
 $$;
 
 create or replace function private.save_keyword_draw_report(
-  p_share_id uuid, p_event_id uuid, p_round_number integer, p_category text,
-  p_contestant_count integer, p_writer_token text, p_event_name text,
+  p_share_id uuid, p_event_id uuid, p_round_number integer, p_round_name text,
+  p_category text, p_contestant_count integer, p_writer_token text, p_event_name text,
   p_total_count integer, p_remaining_count integer, p_draws jsonb
 ) returns void
 language plpgsql security definer set search_path = ''
@@ -67,6 +77,7 @@ begin
   update public.keyword_draw_reports r
   set event_id = p_event_id,
       round_number = p_round_number,
+      round_name = left(coalesce(p_round_name, ''), 60),
       category = p_category,
       contestant_count = p_contestant_count,
       event_name = left(coalesce(p_event_name, ''), 100),
@@ -87,6 +98,7 @@ as $$
     'share_id', r.share_id,
     'event_id', r.event_id,
     'round_number', r.round_number,
+    'round_name', r.round_name,
     'category', r.category,
     'contestant_count', r.contestant_count,
     'event_name', r.event_name,
@@ -99,6 +111,7 @@ as $$
         jsonb_agg(jsonb_build_object(
           'share_id', h.share_id,
           'round_number', h.round_number,
+          'round_name', h.round_name,
           'category', h.category,
           'contestant_count', h.contestant_count,
           'draw_count', jsonb_array_length(h.draws),
@@ -115,31 +128,33 @@ as $$
 $$;
 
 create or replace function public.create_keyword_draw_report(
-  p_share_id uuid, p_event_id uuid, p_round_number integer, p_category text,
-  p_contestant_count integer, p_writer_token text, p_event_name text,
+  p_share_id uuid, p_event_id uuid, p_round_number integer, p_round_name text,
+  p_category text, p_contestant_count integer, p_writer_token text, p_event_name text,
   p_total_count integer, p_remaining_count integer, p_draws jsonb
 ) returns void
 language plpgsql security invoker set search_path = ''
 as $$
 begin
   perform private.create_keyword_draw_report(
-    p_share_id, p_event_id, p_round_number, p_category, p_contestant_count,
-    p_writer_token, p_event_name, p_total_count, p_remaining_count, p_draws
+    p_share_id, p_event_id, p_round_number, p_round_name, p_category,
+    p_contestant_count, p_writer_token, p_event_name, p_total_count,
+    p_remaining_count, p_draws
   );
 end;
 $$;
 
 create or replace function public.save_keyword_draw_report(
-  p_share_id uuid, p_event_id uuid, p_round_number integer, p_category text,
-  p_contestant_count integer, p_writer_token text, p_event_name text,
+  p_share_id uuid, p_event_id uuid, p_round_number integer, p_round_name text,
+  p_category text, p_contestant_count integer, p_writer_token text, p_event_name text,
   p_total_count integer, p_remaining_count integer, p_draws jsonb
 ) returns void
 language plpgsql security invoker set search_path = ''
 as $$
 begin
   perform private.save_keyword_draw_report(
-    p_share_id, p_event_id, p_round_number, p_category, p_contestant_count,
-    p_writer_token, p_event_name, p_total_count, p_remaining_count, p_draws
+    p_share_id, p_event_id, p_round_number, p_round_name, p_category,
+    p_contestant_count, p_writer_token, p_event_name, p_total_count,
+    p_remaining_count, p_draws
   );
 end;
 $$;
@@ -151,16 +166,16 @@ as $$
   select private.read_keyword_draw_report(p_share_id);
 $$;
 
-revoke all on function private.create_keyword_draw_report(uuid, uuid, integer, text, integer, text, text, integer, integer, jsonb) from public;
-revoke all on function private.save_keyword_draw_report(uuid, uuid, integer, text, integer, text, text, integer, integer, jsonb) from public;
+revoke all on function private.create_keyword_draw_report(uuid, uuid, integer, text, text, integer, text, text, integer, integer, jsonb) from public;
+revoke all on function private.save_keyword_draw_report(uuid, uuid, integer, text, text, integer, text, text, integer, integer, jsonb) from public;
 revoke all on function private.read_keyword_draw_report(uuid) from public;
-grant execute on function private.create_keyword_draw_report(uuid, uuid, integer, text, integer, text, text, integer, integer, jsonb) to anon, authenticated;
-grant execute on function private.save_keyword_draw_report(uuid, uuid, integer, text, integer, text, text, integer, integer, jsonb) to anon, authenticated;
+grant execute on function private.create_keyword_draw_report(uuid, uuid, integer, text, text, integer, text, text, integer, integer, jsonb) to anon, authenticated;
+grant execute on function private.save_keyword_draw_report(uuid, uuid, integer, text, text, integer, text, text, integer, integer, jsonb) to anon, authenticated;
 grant execute on function private.read_keyword_draw_report(uuid) to anon, authenticated;
 
-revoke all on function public.create_keyword_draw_report(uuid, uuid, integer, text, integer, text, text, integer, integer, jsonb) from public;
-revoke all on function public.save_keyword_draw_report(uuid, uuid, integer, text, integer, text, text, integer, integer, jsonb) from public;
+revoke all on function public.create_keyword_draw_report(uuid, uuid, integer, text, text, integer, text, text, integer, integer, jsonb) from public;
+revoke all on function public.save_keyword_draw_report(uuid, uuid, integer, text, text, integer, text, text, integer, integer, jsonb) from public;
 revoke all on function public.get_keyword_draw_report(uuid) from public;
-grant execute on function public.create_keyword_draw_report(uuid, uuid, integer, text, integer, text, text, integer, integer, jsonb) to anon, authenticated;
-grant execute on function public.save_keyword_draw_report(uuid, uuid, integer, text, integer, text, text, integer, integer, jsonb) to anon, authenticated;
+grant execute on function public.create_keyword_draw_report(uuid, uuid, integer, text, text, integer, text, text, integer, integer, jsonb) to anon, authenticated;
+grant execute on function public.save_keyword_draw_report(uuid, uuid, integer, text, text, integer, text, text, integer, integer, jsonb) to anon, authenticated;
 grant execute on function public.get_keyword_draw_report(uuid) to anon, authenticated;

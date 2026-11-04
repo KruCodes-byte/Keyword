@@ -89,6 +89,8 @@
     .contestant-settings { padding: 0 14px 15px; }
     .contestant-fields { display: grid; grid-template-columns: minmax(0, 1fr) 105px; gap: 10px; margin-top: 11px; }
     .contestant-field { display: grid; gap: 5px; }
+    .round-name-field { display: grid; gap: 5px; margin-top: 11px; }
+    .round-name-field input { width: 100%; height: 38px; padding: 0 10px; border: 1px solid #dfe5df; border-radius: 5px; color: var(--ink); background: white; font: inherit; font-size: 13px; }
     .contestant-field label { color: #526158; font-size: 11px; font-weight: 600; }
     .contestant-field input { width: 100%; height: 38px; padding: 0 10px; border: 1px solid #dfe5df; border-radius: 5px; color: var(--ink); background: white; font: inherit; font-size: 13px; }
     .contestant-field input:disabled { color: #78827c; background: #f4f6f3; }
@@ -307,6 +309,7 @@
           <section class="manage-panel" aria-labelledby="contestantHeading">
             <div class="panel-heading"><h2 id="contestantHeading">ประเภทผู้เข้าประกวดรอบนี้</h2><span id="contestantRoundLabel" class="panel-count">รอบที่ 1</span></div>
             <div class="contestant-settings">
+              <div class="round-name-field"><label for="roundNameInput">ชื่อรอบ</label><input id="roundNameInput" type="text" maxlength="60" placeholder="เช่น รอบคัดเลือก"></div>
               <div class="contestant-fields">
                 <div class="contestant-field"><label for="contestantType">ตัวอักษรประเภท</label><input id="contestantType" type="text" maxlength="4" value="M" autocomplete="off" spellcheck="false" aria-describedby="contestantTypeHint"></div>
                 <div class="contestant-field"><label for="contestantCount">จำนวนลำดับ</label><input id="contestantCount" type="number" min="1" max="14" step="1" value="14" inputmode="numeric"></div>
@@ -405,7 +408,7 @@
     const supabaseClient = createClient(window.SUPABASE_CONFIG.url, window.SUPABASE_CONFIG.publishableKey);
     (() => {
       const STORAGE_KEY = 'จับคำ.keyword-draw.v1';
-      const initialState = { remaining: [], used: [], history: [], currentId: null, eventName: '', showcaseTextColor: '#8ce7f5', timerMode: 'up', timerLayout: 'keyword-large', timerDurationMs: 60000, share: null, historyShare: null, eventId: makeUuid(), roundNumber: 1, contestantType: 'M', contestantCount: 14 };
+      const initialState = { remaining: [], used: [], history: [], currentId: null, eventName: '', roundName: '', showcaseTextColor: '#8ce7f5', timerMode: 'up', timerLayout: 'keyword-large', timerDurationMs: 60000, share: null, historyShare: null, eventId: makeUuid(), roundNumber: 1, contestantType: 'M', contestantCount: 14 };
       let state = loadState();
       let activeTab = 'remaining';
       let toastTimer;
@@ -430,6 +433,7 @@
 
       const elements = {
         eventName: document.querySelector('#eventName'), remainingCount: document.querySelector('#remainingCount'),
+        roundNameInput: document.querySelector('#roundNameInput'),
         usedCount: document.querySelector('#usedCount'), totalCount: document.querySelector('#totalCount'),
         currentWord: document.querySelector('#currentWord'), currentSubtitle: document.querySelector('#currentSubtitle'),
         wordDisplay: document.querySelector('#wordDisplay'), drawNumber: document.querySelector('#drawNumber'),
@@ -477,10 +481,11 @@
           delete restored.sheetWebAppUrl;
           if (!restored.eventId || typeof restored.eventId !== 'string') restored.eventId = makeUuid();
           if (!Number.isInteger(restored.roundNumber) || restored.roundNumber < 1) restored.roundNumber = 1;
+          if (typeof restored.roundName !== 'string') restored.roundName = '';
           if (!/^[A-Z]{1,4}$/.test(restored.contestantType)) restored.contestantType = 'M';
           if (!Number.isInteger(restored.contestantCount) || restored.contestantCount < 1 || restored.contestantCount > 14) restored.contestantCount = 14;
           if (!restored.share || typeof restored.share.shareId !== 'string' || typeof restored.share.writerToken !== 'string') restored.share = null;
-          else restored.share = { ...restored.share, eventId: restored.eventId, roundNumber: restored.roundNumber, contestantType: restored.contestantType, contestantCount: restored.contestantCount };
+          else restored.share = { ...restored.share, eventId: restored.eventId, roundNumber: restored.roundNumber, roundName: typeof restored.share.roundName === 'string' ? restored.share.roundName : restored.roundName, contestantType: restored.contestantType, contestantCount: restored.contestantCount };
           if (!restored.historyShare || typeof restored.historyShare.shareId !== 'string' || typeof restored.historyShare.writerToken !== 'string') restored.historyShare = null;
           else restored.historyShare = { ...restored.historyShare, eventId: restored.eventId };
           if (!['up', 'down'].includes(restored.timerMode)) restored.timerMode = initialState.timerMode;
@@ -507,6 +512,7 @@
         return {
           p_event_id: state.eventId,
           p_round_number: state.roundNumber,
+          p_round_name: state.roundName.trim(),
           p_category: state.contestantType,
           p_contestant_count: state.contestantCount,
           p_event_name: state.eventName || '',
@@ -532,6 +538,7 @@
           p_share_id: state.share.shareId,
           p_event_id: state.share.eventId,
           p_round_number: state.share.roundNumber,
+          p_round_name: state.share.roundName || '',
           p_category: state.share.contestantType,
           p_contestant_count: state.share.contestantCount,
           p_writer_token: state.share.writerToken,
@@ -570,6 +577,7 @@
               writerToken: `${makeUuid()}${makeUuid()}`,
               eventId: state.eventId,
               roundNumber: state.roundNumber,
+              roundName: state.roundName.trim(),
               contestantType: state.contestantType,
               contestantCount: state.contestantCount
             };
@@ -577,6 +585,7 @@
               p_share_id: share.shareId,
               p_event_id: share.eventId,
               p_round_number: share.roundNumber,
+              p_round_name: share.roundName,
               p_category: share.contestantType,
               p_contestant_count: share.contestantCount,
               p_writer_token: share.writerToken,
@@ -653,12 +662,12 @@
             item.className = 'round-history-item';
             const label = document.createElement('span');
             label.className = 'round-history-label';
-            label.textContent = `รอบที่ ${round.round_number} · ${round.category}1–${round.category}${round.contestant_count} · ${round.draw_count} คำ`;
+            label.textContent = `${round.round_name || `รอบที่ ${round.round_number}`} · ${round.category}1–${round.category}${round.contestant_count} · ${round.draw_count} คำ`;
             const remove = document.createElement('button');
             remove.type = 'button';
             remove.className = 'round-history-delete';
             remove.textContent = 'ลบรอบนี้';
-            remove.addEventListener('click', () => deleteRoundHistory(round.share_id, round.round_number));
+            remove.addEventListener('click', () => deleteRoundHistory(round.share_id, round.round_number, round.round_name));
             item.append(label, remove);
             elements.roundHistoryList.append(item);
           });
@@ -689,11 +698,12 @@
         return Number(data || 0);
       }
 
-      async function deleteRoundHistory(shareId, roundNumber) {
-        if (!confirm(`ลบประวัติรอบที่ ${roundNumber}? ลิงก์ดูผลของรอบนี้จะใช้งานไม่ได้`)) return;
+      async function deleteRoundHistory(shareId, roundNumber, roundName = '') {
+        const roundTitle = roundName || `รอบที่ ${roundNumber}`;
+        if (!confirm(`ลบ${roundTitle}? ลิงก์ดูผลของรอบนี้จะใช้งานไม่ได้`)) return;
         try {
           await removeRoundHistory(shareId);
-          showToast(`ลบประวัติรอบที่ ${roundNumber} แล้ว`);
+          showToast(`ลบ${roundTitle}แล้ว`);
           await loadRoundHistory();
         } catch (error) {
           console.error('Unable to delete round history', error);
@@ -837,15 +847,17 @@
         elements.remainingCount.textContent = state.remaining.length;
         elements.usedCount.textContent = state.used.length;
         elements.totalCount.textContent = total;
-        elements.drawNumber.textContent = `รอบที่ ${state.roundNumber} · ${state.contestantType}`;
+        const roundTitle = state.roundName.trim() || `รอบที่ ${state.roundNumber}`;
+        elements.drawNumber.textContent = `${roundTitle} · ${state.contestantType}`;
         elements.sessionLabel.textContent = state.eventName.trim() || 'พร้อมใช้งาน';
         elements.eventName.value = state.eventName;
+        elements.roundNameInput.value = state.roundName;
         elements.contestantType.value = state.contestantType;
         elements.contestantCount.value = state.contestantCount;
         elements.contestantType.disabled = state.used.length > 0;
         elements.contestantCount.disabled = state.used.length > 0;
         elements.contestantRangePreview.textContent = `${state.contestantType}1–${state.contestantType}${state.contestantCount}`;
-        elements.contestantRoundLabel.textContent = `รอบที่ ${state.roundNumber}`;
+        elements.contestantRoundLabel.textContent = roundTitle;
         elements.showcaseColor.value = state.showcaseTextColor;
         elements.colorValue.textContent = state.showcaseTextColor.toUpperCase();
         elements.showcaseOverlay.style.setProperty('--showcase-color', state.showcaseTextColor);
@@ -1346,6 +1358,7 @@
         state.currentId = null;
         if (state.share) state.historyShare = state.share;
         state.roundNumber += 1;
+        state.roundName = '';
         state.share = null;
         persist();
         render();
@@ -1497,6 +1510,13 @@
         persist();
         scheduleSharedReportSave();
         elements.sessionLabel.textContent = state.eventName.trim() || 'พร้อมใช้งาน';
+      });
+      elements.roundNameInput.addEventListener('input', event => {
+        state.roundName = event.target.value.slice(0, 60);
+        if (state.share) state.share.roundName = state.roundName.trim();
+        persist();
+        render();
+        scheduleSharedReportSave();
       });
       elements.contestantType.addEventListener('change', event => {
         if (state.used.length) return;
