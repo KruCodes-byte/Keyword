@@ -89,6 +89,12 @@
     .contestant-field input { width: 100%; height: 38px; padding: 0 10px; border: 1px solid #dfe5df; border-radius: 5px; color: var(--ink); background: white; font: inherit; font-size: 13px; }
     .contestant-field input:disabled { color: #78827c; background: #f4f6f3; }
     .contestant-settings-hint { margin: 9px 0 0; color: #7a857d; font-size: 10px; line-height: 1.55; }
+    .round-history-actions { display: flex; gap: 8px; padding: 12px 14px 0; }
+    .round-history-list { display: grid; gap: 6px; margin: 10px 0 0; padding: 0 14px; list-style: none; }
+    .round-history-item { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px; border: 1px solid #edf0ec; border-radius: 5px; }
+    .round-history-label { min-width: 0; color: #526158; font-size: 10px; line-height: 1.5; overflow-wrap: anywhere; }
+    .round-history-delete { flex: 0 0 auto; min-height: 30px; padding: 5px 8px; border: 1px solid #f0d9d4; border-radius: 4px; color: #a44234; background: #fff9f7; font: inherit; font-size: 10px; }
+    .round-history-clear { color: #a44234; border-color: #f0d9d4; }
     .timer-setup { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 12px 18px; padding: 14px 20px; border-top: 1px solid #edf0ec; background: #fff; }
     .timer-setup-title { color: #526158; font-size: 11px; font-weight: 600; }
     .timer-modes { display: inline-flex; gap: 3px; padding: 3px; border: 1px solid #e2e8e1; border-radius: 6px; background: #f5f7f3; }
@@ -286,6 +292,14 @@
               <p id="contestantTypeHint" class="contestant-settings-hint">หมายเลขที่ระบบจะกำหนด: <strong id="contestantRangePreview">M1–M14</strong> · แก้ไขได้ก่อนเริ่มสุ่ม</p>
             </div>
           </section>
+          <section class="manage-panel" aria-labelledby="roundHistoryHeading">
+            <div class="panel-heading"><h2 id="roundHistoryHeading">ประวัติรอบที่ผ่านมา</h2><span id="roundHistoryStatus" class="panel-count" aria-live="polite">กำลังโหลด…</span></div>
+            <div class="round-history-actions">
+              <button id="refreshRoundHistory" class="small-button" type="button">โหลดประวัติ</button>
+              <button id="clearRoundHistory" class="small-button round-history-clear" type="button" disabled>ล้างประวัติทั้งหมด</button>
+            </div>
+            <ul id="roundHistoryList" class="round-history-list" aria-label="รายการรอบที่ผ่านมา"></ul>
+          </section>
           <section class="manage-panel" aria-labelledby="manageHeading">
             <div class="panel-heading"><h2 id="manageHeading">เพิ่มคำเข้าคลัง</h2><span class="panel-count">เพิ่มได้ทันที</span></div>
             <p class="manage-intro">พิมพ์คำที่ต้องการ หรือเลือกไฟล์ Excel เพื่อเพิ่มหลายคำพร้อมกัน</p>
@@ -359,7 +373,7 @@
     const supabaseClient = createClient(window.SUPABASE_CONFIG.url, window.SUPABASE_CONFIG.publishableKey);
     (() => {
       const STORAGE_KEY = 'จับคำ.keyword-draw.v1';
-      const initialState = { remaining: [], used: [], history: [], currentId: null, eventName: '', showcaseTextColor: '#d7f36a', timerMode: 'up', timerDurationMs: 60000, share: null, eventId: makeUuid(), roundNumber: 1, contestantType: 'M', contestantCount: 14 };
+      const initialState = { remaining: [], used: [], history: [], currentId: null, eventName: '', showcaseTextColor: '#d7f36a', timerMode: 'up', timerDurationMs: 60000, share: null, historyShare: null, eventId: makeUuid(), roundNumber: 1, contestantType: 'M', contestantCount: 14 };
       let state = loadState();
       let activeTab = 'remaining';
       let toastTimer;
@@ -405,7 +419,9 @@
         shareReportButton: document.querySelector('#shareReportButton'), shareDialog: document.querySelector('#shareDialog'),
         shareUrl: document.querySelector('#shareUrl'), contestantType: document.querySelector('#contestantType'),
         contestantCount: document.querySelector('#contestantCount'), contestantRoundLabel: document.querySelector('#contestantRoundLabel'),
-        contestantRangePreview: document.querySelector('#contestantRangePreview')
+        contestantRangePreview: document.querySelector('#contestantRangePreview'),
+        roundHistoryList: document.querySelector('#roundHistoryList'), roundHistoryStatus: document.querySelector('#roundHistoryStatus'),
+        refreshRoundHistory: document.querySelector('#refreshRoundHistory'), clearRoundHistory: document.querySelector('#clearRoundHistory')
       };
 
       function makeUuid() {
@@ -428,6 +444,7 @@
           if (!/^[A-Z]{1,4}$/.test(restored.contestantType)) restored.contestantType = 'M';
           if (!Number.isInteger(restored.contestantCount) || restored.contestantCount < 1 || restored.contestantCount > 14) restored.contestantCount = 14;
           if (!restored.share || typeof restored.share.shareId !== 'string' || typeof restored.share.writerToken !== 'string') restored.share = null;
+          if (!restored.historyShare || typeof restored.historyShare.shareId !== 'string' || typeof restored.historyShare.writerToken !== 'string') restored.historyShare = null;
           else restored.share = { ...restored.share, eventId: restored.eventId, roundNumber: restored.roundNumber, contestantType: restored.contestantType, contestantCount: restored.contestantCount };
           if (!['up', 'down'].includes(restored.timerMode)) restored.timerMode = initialState.timerMode;
           if (!Number.isFinite(saved.timerDurationMs) || saved.timerDurationMs <= 0) {
@@ -544,6 +561,86 @@
         } finally {
           elements.shareReportButton.disabled = false;
           elements.shareReportButton.textContent = 'ดูผลการสุ่ม';
+        }
+      }
+
+      async function loadRoundHistory() {
+        elements.refreshRoundHistory.disabled = true;
+        elements.roundHistoryStatus.textContent = 'กำลังโหลดประวัติ…';
+        try {
+          const reference = state.share || state.historyShare || await ensureSharedReport();
+          const { data, error } = await supabaseClient.rpc('get_keyword_draw_report', { p_share_id: reference.shareId });
+          if (error || !data) throw error || new Error('ไม่พบข้อมูลรอบ');
+          const pastRounds = (data.rounds || []).filter(round => Number(round.round_number) < state.roundNumber);
+          elements.roundHistoryList.replaceChildren();
+          if (!pastRounds.length) {
+            elements.roundHistoryStatus.textContent = 'ยังไม่มีประวัติรอบก่อนหน้า';
+            elements.clearRoundHistory.disabled = true;
+            return;
+          }
+          elements.roundHistoryStatus.textContent = `มีประวัติ ${pastRounds.length} รอบ`;
+          elements.clearRoundHistory.disabled = false;
+          pastRounds.forEach(round => {
+            const item = document.createElement('li');
+            item.className = 'round-history-item';
+            const label = document.createElement('span');
+            label.className = 'round-history-label';
+            label.textContent = `รอบที่ ${round.round_number} · ${round.category}1–${round.category}${round.contestant_count} · ${round.draw_count} คำ`;
+            const remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'round-history-delete';
+            remove.textContent = 'ลบรอบนี้';
+            remove.addEventListener('click', () => deleteRoundHistory(round.share_id, round.round_number));
+            item.append(label, remove);
+            elements.roundHistoryList.append(item);
+          });
+        } catch (error) {
+          console.error('Unable to load round history', error);
+          elements.roundHistoryStatus.textContent = 'โหลดประวัติไม่สำเร็จ ลองกดโหลดอีกครั้ง';
+          showToast('เชื่อมต่อประวัติรอบใน Supabase ไม่สำเร็จ');
+        } finally {
+          elements.refreshRoundHistory.disabled = false;
+        }
+      }
+
+      async function removeRoundHistory(shareId = null) {
+        const reference = state.share || state.historyShare;
+        if (!reference) throw new Error('ไม่พบสิทธิ์จัดการประวัติ');
+        const { data, error } = await supabaseClient.rpc('delete_keyword_draw_history', {
+          p_event_id: state.eventId,
+          p_share_id: shareId,
+          p_current_round_number: state.roundNumber,
+          p_writer_token: reference.writerToken
+        });
+        if (error) throw error;
+        if (!state.share && state.historyShare && (shareId === null || state.historyShare.shareId === shareId)) {
+          state.historyShare = null;
+          persist();
+        }
+        return Number(data || 0);
+      }
+
+      async function deleteRoundHistory(shareId, roundNumber) {
+        if (!confirm(`ลบประวัติรอบที่ ${roundNumber}? ลิงก์ดูผลของรอบนี้จะใช้งานไม่ได้`)) return;
+        try {
+          await removeRoundHistory(shareId);
+          showToast(`ลบประวัติรอบที่ ${roundNumber} แล้ว`);
+          await loadRoundHistory();
+        } catch (error) {
+          console.error('Unable to delete round history', error);
+          showToast('ลบประวัติรอบไม่สำเร็จ');
+        }
+      }
+
+      async function clearRoundHistory() {
+        if (!confirm('ล้างประวัติรอบที่ผ่านมาทั้งหมด? ลิงก์ดูผลของรอบเก่าจะใช้งานไม่ได้')) return;
+        try {
+          const deletedCount = await removeRoundHistory(null);
+          showToast(`ล้างประวัติแล้ว ${deletedCount} รอบ`);
+          await loadRoundHistory();
+        } catch (error) {
+          console.error('Unable to clear round history', error);
+          showToast('ล้างประวัติรอบไม่สำเร็จ');
         }
       }
 
@@ -1070,10 +1167,12 @@
         state.used = [];
         state.history = [];
         state.currentId = null;
+        if (state.share) state.historyShare = state.share;
         state.roundNumber += 1;
         state.share = null;
         persist();
         render();
+        loadRoundHistory();
         showToast('เริ่มรอบใหม่แล้ว');
       }
 
@@ -1176,6 +1275,8 @@
       elements.undoButton.addEventListener('click', undoDraw);
       document.querySelector('#resetButton').addEventListener('click', resetRound);
       document.querySelector('#clearButton').addEventListener('click', clearAll);
+      elements.refreshRoundHistory.addEventListener('click', loadRoundHistory);
+      elements.clearRoundHistory.addEventListener('click', clearRoundHistory);
       elements.remainingTab.addEventListener('click', () => { activeTab = 'remaining'; renderList(); });
       elements.usedTab.addEventListener('click', () => { activeTab = 'used'; renderList(); });
       elements.searchInput.addEventListener('input', renderList);
@@ -1280,6 +1381,8 @@
         if (event.key === STORAGE_KEY) { state = loadState(); render(); }
       });
       render();
+      elements.roundHistoryStatus.textContent = state.roundNumber > 1 ? 'กำลังโหลด…' : 'ยังไม่มีประวัติรอบก่อนหน้า';
+      if (state.roundNumber > 1) loadRoundHistory();
       restoreBackgroundAsset();
       restoreIntroMediaAsset();
     })();
