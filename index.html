@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#174a3d">
   <title>จับคำ | ระบบสุ่มคำประกวด</title>
+  <link rel="icon" type="image/png" href="img/logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Kanit:wght@500;600;700&display=swap" rel="stylesheet">
@@ -39,7 +40,7 @@
     .app-shell { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: 100vh; }
     .sidebar { display: flex; flex-direction: column; padding: 28px 20px 20px; color: #f3f8f3; background: var(--forest); }
     .brand { display: flex; align-items: center; gap: 11px; padding: 0 5px 31px; }
-    .brand-mark { display: grid; place-items: center; width: 39px; height: 39px; border-radius: 12px; color: var(--forest); background: var(--lime); font-family: "Kanit", sans-serif; font-size: 22px; font-weight: 700; }
+    .brand-mark { display: block; flex: 0 0 76px; width: 76px; height: 58px; object-fit: contain; }
     .brand-name { font-family: "Kanit", sans-serif; font-size: 19px; line-height: 1.1; }
     .brand-caption { margin-top: 3px; color: #b7c9c0; font-size: 11px; }
     .side-label { margin: 0 8px 11px; color: #a7beb4; font-size: 11px; font-weight: 600; letter-spacing: .06em; }
@@ -210,7 +211,8 @@
     @media (max-width: 620px) {
       .app-shell { display: block; }
       .sidebar { padding: 13px 15px; }
-      .brand { padding: 0; }
+      .brand { gap: 10px; padding: 0; }
+      .brand-mark { flex-basis: 62px; width: 62px; height: 48px; }
       .sidebar .side-label, .sidebar .event-input-wrap, .sidebar .side-rule, .sidebar .side-stats, .sidebar .side-actions, .sidebar-footer { display: none; }
       .main { padding: 23px 14px 32px; }
       .topbar { align-items: flex-start; margin-bottom: 21px; }
@@ -237,8 +239,8 @@
   <div class="app-shell">
     <aside class="sidebar" aria-label="ข้อมูลกิจกรรม">
       <div class="brand">
-        <div class="brand-mark" aria-hidden="true">จ</div>
-        <div><div class="brand-name">จับคำ</div><div class="brand-caption">CONTEST KEYWORD DRAW</div></div>
+        <img class="brand-mark" src="img/logo.png" alt="MED Miss & Mister & Miss Beauty Queen and Ambassador Education 2026">
+        <div><div class="brand-name">Keyword Random</div><div class="brand-caption">MED ED.SMO</div></div>
       </div>
       <p class="side-label">ชื่อกิจกรรม</p>
       <div class="event-input-wrap"><label class="sr-only" for="eventName">ชื่อกิจกรรม</label><input id="eventName" class="event-input" maxlength="50" placeholder="เช่น รอบชิงชนะเลิศ"></div>
