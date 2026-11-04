@@ -61,7 +61,7 @@
     h1 { margin: 5px 0 0; font-family: "Kanit", sans-serif; font-size: 28px; font-weight: 600; line-height: 1.25; }
     .session-pill { display: inline-flex; align-items: center; gap: 8px; padding: 8px 11px; border: 1px solid #dfe7df; border-radius: 999px; color: #315746; background: #f9fcf8; font-size: 11px; white-space: nowrap; }
     .report-button { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; padding: 9px 15px; border: 0; border-radius: 6px; color: #17241f; background: var(--lime); font-size: 13px; font-weight: 700; text-decoration: none; box-shadow: 0 2px 7px rgba(20,40,30,.12); }
-    .report-button:hover { background: #c9e858; }
+    .report-button:hover { background: #00bbd4; }
     .share-dialog { width: min(520px, calc(100vw - 32px)); padding: 24px; border: 1px solid #dce5dc; border-radius: 10px; color: var(--ink); box-shadow: var(--shadow); }
     .share-dialog::backdrop { background: rgba(13, 31, 24, .55); }
     .share-dialog h2 { margin: 0 0 8px; font-size: 18px; }
@@ -468,8 +468,9 @@
           if (!/^[A-Z]{1,4}$/.test(restored.contestantType)) restored.contestantType = 'M';
           if (!Number.isInteger(restored.contestantCount) || restored.contestantCount < 1 || restored.contestantCount > 14) restored.contestantCount = 14;
           if (!restored.share || typeof restored.share.shareId !== 'string' || typeof restored.share.writerToken !== 'string') restored.share = null;
-          if (!restored.historyShare || typeof restored.historyShare.shareId !== 'string' || typeof restored.historyShare.writerToken !== 'string') restored.historyShare = null;
           else restored.share = { ...restored.share, eventId: restored.eventId, roundNumber: restored.roundNumber, contestantType: restored.contestantType, contestantCount: restored.contestantCount };
+          if (!restored.historyShare || typeof restored.historyShare.shareId !== 'string' || typeof restored.historyShare.writerToken !== 'string') restored.historyShare = null;
+          else restored.historyShare = { ...restored.historyShare, eventId: restored.eventId };
           if (!['up', 'down'].includes(restored.timerMode)) restored.timerMode = initialState.timerMode;
           if (!Number.isFinite(saved.timerDurationMs) || saved.timerDurationMs <= 0) {
             const legacyTimerValue = Number(restored.timerMinutes);
@@ -508,8 +509,12 @@
         };
       }
 
+      function hasShareCredentials(share) {
+        return Boolean(share && typeof share.shareId === 'string' && typeof share.writerToken === 'string');
+      }
+
       async function saveSharedReport() {
-        if (!state.share) return;
+        if (!hasShareCredentials(state.share)) throw new Error('ข้อมูลลิงก์รอบนี้ไม่ครบ');
         const { error } = await supabaseClient.rpc('save_keyword_draw_report', {
           p_share_id: state.share.shareId,
           p_event_id: state.share.eventId,
@@ -531,11 +536,16 @@
       }
 
       async function syncSharedReport() {
+        if (!hasShareCredentials(state.share)) state.share = null;
         if (!state.share) await ensureSharedReport();
         await saveSharedReport();
       }
 
       async function ensureSharedReport() {
+        if (state.share && !hasShareCredentials(state.share)) {
+          state.share = null;
+          persist();
+        }
         if (state.share) {
           await saveSharedReport();
           return state.share;
@@ -611,7 +621,9 @@
         elements.refreshRoundHistory.disabled = true;
         elements.roundHistoryStatus.textContent = 'กำลังโหลดประวัติ…';
         try {
-          const reference = state.share || state.historyShare || await ensureSharedReport();
+          const reference = (hasShareCredentials(state.share) && state.share)
+            || (hasShareCredentials(state.historyShare) && state.historyShare)
+            || await ensureSharedReport();
           const { data, error } = await supabaseClient.rpc('get_keyword_draw_report', { p_share_id: reference.shareId });
           if (error || !data) throw error || new Error('ไม่พบข้อมูลรอบ');
           const pastRounds = (data.rounds || []).filter(round => Number(round.round_number) < state.roundNumber);
@@ -647,7 +659,8 @@
       }
 
       async function removeRoundHistory(shareId = null) {
-        const reference = state.share || state.historyShare;
+        const reference = (hasShareCredentials(state.share) && state.share)
+          || (hasShareCredentials(state.historyShare) && state.historyShare);
         if (!reference) throw new Error('ไม่พบสิทธิ์จัดการประวัติ');
         const { data, error } = await supabaseClient.rpc('delete_keyword_draw_history', {
           p_event_id: state.eventId,
