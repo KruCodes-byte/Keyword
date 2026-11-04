@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#174a3d">
+  <title>ผลการสุ่มคำ | จับคำ</title>
+  <script src="supabase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 28px 16px; color: #17241f; background: #f3f5f1; font: 15px Arial, sans-serif; }
+    main { max-width: 1080px; margin: auto; padding: 24px; border: 1px solid #e5eae5; border-radius: 10px; background: white; }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    h1 { margin: 0 0 5px; font-size: 25px; }
+    #eventName { color: #667269; }
+    button { min-height: 40px; padding: 8px 14px; border: 0; border-radius: 5px; color: white; background: #174a3d; font: inherit; cursor: pointer; }
+    button:disabled { opacity: .5; cursor: wait; }
+    .stats { display: flex; gap: 32px; margin: 22px 0; padding: 16px; border-radius: 6px; background: #eaf3ed; }
+    .stats strong { display: block; margin-top: 4px; color: #174a3d; font-size: 22px; }
+    .round-picker { display: flex; align-items: center; gap: 10px; margin: 18px 0 6px; color: #526158; font-size: 12px; font-weight: 600; }
+    .round-picker select { min-width: min(360px, 100%); height: 38px; padding: 0 10px; border: 1px solid #dfe5df; border-radius: 5px; color: #17241f; background: white; font: inherit; font-weight: 400; }
+    #status { margin: 16px 0; color: #667269; }
+    #status.error { color: #b24b3a; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 11px; border-bottom: 1px solid #e7ebe7; text-align: left; white-space: nowrap; }
+    th { background: #f6f8f5; }
+    @media (max-width: 620px) { main { padding: 16px; } header { align-items: flex-start; flex-direction: column; } .stats { gap: 22px; } .round-picker { align-items: flex-start; flex-direction: column; } .round-picker select { width: 100%; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div><h1>ผลการสุ่มคำ</h1><div id="eventName"></div></div>
+      <button id="exportButton" type="button" disabled>ส่งออก Excel</button>
+    </header>
+    <section class="stats" aria-label="สรุปผล">
+      <div>สุ่มแล้ว<strong id="drawCount">—</strong></div>
+      <div>คำที่เหลือ<strong id="remainingCount">—</strong></div>
+    </section>
+    <label class="round-picker" for="roundSelect">เลือกดูรอบที่ผ่านมา
+      <select id="roundSelect" aria-label="เลือกประวัติรอบกิจกรรม"></select>
+    </label>
+    <p id="status" role="status">กำลังโหลดผลการสุ่ม…</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>เวลาที่หยุด</th><th>กิจกรรม</th><th>คำที่สุ่มได้</th><th>ผู้ได้รับคำ</th><th>เวลาที่ใช้</th></tr></thead>
+        <tbody id="resultsBody"></tbody>
+      </table>
+    </div>
+  </main>
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.118.0';
+    (() => {
+      const supabaseClient = createClient(window.SUPABASE_CONFIG.url, window.SUPABASE_CONFIG.publishableKey);
+      let shareId = new URLSearchParams(location.search).get('id');
+      const headers = ['เวลาที่หยุด', 'กิจกรรม', 'คำที่สุ่มได้', 'ผู้ได้รับคำ', 'เวลาที่ใช้'];
+      const status = document.querySelector('#status');
+      const exportButton = document.querySelector('#exportButton');
+      const roundSelect = document.querySelector('#roundSelect');
+      let exportRows = [];
+      let loading = false;
+      let reloadAfterLoad = false;
+      let reportChannel = null;
+      let lastReport = null;
+      function formatTime(ms) {
+        if (!Number.isFinite(ms)) return '';
+        const cs = Math.max(0, Math.floor(ms / 10));
+        return `${String(Math.floor(cs / 6000)).padStart(2, '0')}.${String(Math.floor(cs / 100) % 60).padStart(2, '0')}.${String(cs % 100).padStart(2, '0')}`;
+      }
+      function render(data) {
+        lastReport = data;
+        const draws = Array.isArray(data.draws) ? data.draws : [];
+        exportRows = draws.map(draw => [
+          draw.drawnAt ? new Date(draw.drawnAt).toLocaleString('th-TH') : '',
+          data.event_name || '',
+          draw.text || '',
+          draw.recipientId || '',
+          formatTime(draw.timeUsedMs)
+        ]);
+        document.querySelector('#eventName').textContent = data.event_name || '';
+        document.querySelector('#drawCount').textContent = `${draws.length} ครั้ง`;
+        document.querySelector('#remainingCount').textContent = String(data.remaining_count ?? 0);
+        renderRoundOptions(data.rounds || []);
+        const body = document.querySelector('#resultsBody');
+        body.replaceChildren();
+        exportRows.forEach(row => {
+          const tr = document.createElement('tr');
+          row.forEach(value => { const td = document.createElement('td'); td.textContent = value; tr.append(td); });
+          body.append(tr);
+        });
+        status.textContent = `อัปเดต ${new Date(data.updated_at).toLocaleTimeString('th-TH')}`;
+        exportButton.disabled = false;
+      }
+
+      function renderRoundOptions(rounds) {
+        roundSelect.replaceChildren();
+        rounds.forEach(round => {
+          const option = document.createElement('option');
+          option.value = round.share_id;
+          option.textContent = `รอบที่ ${round.round_number} · ${round.category}1–${round.category}${round.contestant_count} · ${round.draw_count} คำ`;
+          option.selected = round.share_id === shareId;
+          roundSelect.append(option);
+        });
+        roundSelect.disabled = rounds.length < 2;
+      }
+
+      async function loadReport(targetShareId = shareId) {
+        if (!targetShareId) return false;
+        if (loading) {
+          reloadAfterLoad = true;
+          return false;
+        }
+        loading = true;
+        const { data, error } = await supabaseClient.rpc('get_keyword_draw_report', { p_share_id: targetShareId });
+        loading = false;
+        if (error || !data) {
+          status.textContent = 'ไม่พบผลการสุ่มสำหรับลิงก์นี้';
+          status.classList.add('error');
+          if (reloadAfterLoad) { reloadAfterLoad = false; queueMicrotask(loadReport); }
+          return false;
+        }
+        shareId = targetShareId;
+        const url = new URL(location.href);
+        url.searchParams.set('id', shareId);
+        history.replaceState(null, '', url);
+        status.classList.remove('error');
+        render(data);
+        if (reloadAfterLoad) { reloadAfterLoad = false; queueMicrotask(loadReport); }
+        return true;
+      }
+
+      if (!/^[0-9a-f-]{36}$/i.test(shareId || '')) {
+        status.textContent = 'ลิงก์ดูผลไม่ถูกต้อง';
+        status.classList.add('error');
+      } else {
+        (async () => {
+          if (!await loadReport()) return;
+          await supabaseClient.realtime.setAuth();
+          reportChannel = supabaseClient
+            .channel(`keyword-event:${lastReport.event_id}`, { config: { private: true } })
+            .on('broadcast', { event: 'INSERT' }, () => loadReport())
+            .on('broadcast', { event: 'UPDATE' }, () => loadReport())
+            .subscribe(channelStatus => {
+              if (channelStatus === 'SUBSCRIBED') {
+                status.textContent = `เชื่อมต่อแบบเรียลไทม์ · รอบที่ ${lastReport.round_number}`;
+                status.classList.remove('error');
+                loadReport();
+              } else if (channelStatus === 'CHANNEL_ERROR' || channelStatus === 'TIMED_OUT') {
+                status.textContent = 'เชื่อมต่อสดไม่สำเร็จ · กำลังลองใหม่';
+                status.classList.add('error');
+              }
+            });
+        })().catch(() => {
+          status.textContent = 'เชื่อมต่อ Supabase Realtime ไม่สำเร็จ';
+          status.classList.add('error');
+        });
+      }
+
+      roundSelect.addEventListener('change', () => loadReport(roundSelect.value));
+
+      exportButton.addEventListener('click', () => {
+        if (!window.XLSX) {
+          status.textContent = 'โหลดตัวส่งออก Excel ไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ต';
+          status.classList.add('error');
+          return;
+        }
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([headers, ...exportRows]), 'ผลสุ่ม');
+        XLSX.writeFile(workbook, 'ผลการสุ่มคำ.xlsx');
+      });
+    })();
+  </script>
+</body>
+</html>

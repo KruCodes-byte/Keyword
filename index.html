@@ -1,0 +1,1288 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#174a3d">
+  <title>จับคำ | ระบบสุ่มคำประกวด</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Kanit:wght@500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17241f;
+      --muted: #78827c;
+      --line: #e7ebe7;
+      --paper: #fff;
+      --canvas: #f3f5f1;
+      --forest: #174a3d;
+      --forest-deep: #10392f;
+      --lime: #d7f36a;
+      --coral: #e76d56;
+      --coral-light: #fff0ec;
+      --green-light: #eaf3ed;
+      --shadow: 0 16px 42px rgba(27, 46, 37, .08);
+      font-family: "IBM Plex Sans Thai", sans-serif;
+      color: var(--ink);
+      background: var(--canvas);
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; min-height: 100vh; }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 3px solid #e76d56; outline-offset: 3px; }
+    .app-shell { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: 100vh; }
+    .sidebar { display: flex; flex-direction: column; padding: 28px 20px 20px; color: #f3f8f3; background: var(--forest); }
+    .brand { display: flex; align-items: center; gap: 11px; padding: 0 5px 31px; }
+    .brand-mark { display: grid; place-items: center; width: 39px; height: 39px; border-radius: 12px; color: var(--forest); background: var(--lime); font-family: "Kanit", sans-serif; font-size: 22px; font-weight: 700; }
+    .brand-name { font-family: "Kanit", sans-serif; font-size: 19px; line-height: 1.1; }
+    .brand-caption { margin-top: 3px; color: #b7c9c0; font-size: 11px; }
+    .side-label { margin: 0 8px 11px; color: #a7beb4; font-size: 11px; font-weight: 600; letter-spacing: .06em; }
+    .event-input-wrap { padding: 0 3px; }
+    .event-input { width: 100%; padding: 11px 12px; border: 1px solid rgba(255,255,255,.2); border-radius: 7px; color: white; background: rgba(255,255,255,.08); font-size: 13px; }
+    .event-input::placeholder { color: #b7c9c0; }
+    .side-rule { height: 1px; margin: 23px 4px; background: rgba(255,255,255,.14); }
+    .side-stat { display: flex; justify-content: space-between; align-items: center; padding: 9px 8px; color: #c9d8d1; font-size: 13px; }
+    .side-stat strong { color: white; font-family: "Kanit", sans-serif; font-size: 18px; font-weight: 600; }
+    .side-actions { display: grid; gap: 9px; margin-top: 18px; }
+    .side-button { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 42px; padding: 9px 11px; border: 1px solid rgba(255,255,255,.18); border-radius: 6px; color: #f5faf6; background: transparent; text-align: left; font-size: 12px; transition: background .18s ease, border-color .18s ease; }
+    .side-button:hover { border-color: rgba(255,255,255,.4); background: rgba(255,255,255,.08); }
+    .side-button .arrow { color: #b7c9c0; font-size: 17px; }
+    .sidebar-footer { margin-top: auto; padding: 18px 8px 2px; color: #aac0b6; font-size: 11px; line-height: 1.7; }
+    .main { min-width: 0; padding: 30px clamp(20px, 4vw, 56px) 42px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; max-width: 1180px; margin: 0 auto 30px; }
+    .eyebrow { color: #78827c; font-size: 11px; font-weight: 600; letter-spacing: .08em; }
+    h1 { margin: 5px 0 0; font-family: "Kanit", sans-serif; font-size: 28px; font-weight: 600; line-height: 1.25; }
+    .session-pill { display: inline-flex; align-items: center; gap: 8px; padding: 8px 11px; border: 1px solid #dfe7df; border-radius: 999px; color: #315746; background: #f9fcf8; font-size: 11px; white-space: nowrap; }
+    .report-button { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; padding: 9px 15px; border: 0; border-radius: 6px; color: #17241f; background: var(--lime); font-size: 13px; font-weight: 700; text-decoration: none; box-shadow: 0 2px 7px rgba(20,40,30,.12); }
+    .report-button:hover { background: #c9e858; }
+    .share-dialog { width: min(520px, calc(100vw - 32px)); padding: 24px; border: 1px solid #dce5dc; border-radius: 10px; color: var(--ink); box-shadow: var(--shadow); }
+    .share-dialog::backdrop { background: rgba(13, 31, 24, .55); }
+    .share-dialog h2 { margin: 0 0 8px; font-size: 18px; }
+    .share-dialog p { color: #667269; font-size: 12px; line-height: 1.6; }
+    .share-url { width: 100%; height: 40px; margin: 7px 0 12px; padding: 0 10px; border: 1px solid #dfe5df; border-radius: 5px; font: 12px ui-monospace, monospace; }
+    .share-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+    .share-dialog-actions button, .share-dialog-actions a { min-height: 38px; padding: 8px 12px; border: 0; border-radius: 5px; color: white; background: var(--forest); font: inherit; text-decoration: none; cursor: pointer; }
+    .share-dialog-actions .secondary { border: 1px solid #dfe5df; color: #40524a; background: white; }
+    .live-dot { width: 7px; height: 7px; border-radius: 50%; background: #51a66f; box-shadow: 0 0 0 3px #e2f1e7; }
+    .content { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(280px, .85fr); gap: 20px; max-width: 1180px; margin: 0 auto; align-items: start; }
+    .primary-column, .secondary-column { display: grid; gap: 18px; min-width: 0; }
+    .draw-panel { overflow: hidden; border: 1px solid #e6ebe5; border-radius: 10px; background: var(--paper); box-shadow: var(--shadow); }
+    .draw-panel-head { display: flex; justify-content: space-between; align-items: center; padding: 19px 22px; border-bottom: 1px solid #edf0ec; }
+    .section-label { margin: 0; font-size: 13px; font-weight: 600; }
+    .round-label { color: var(--muted); font-size: 11px; }
+    .draw-stage { display: grid; place-items: center; min-height: 280px; padding: 32px 22px 24px; background-color: #fbfcf9; background-image: radial-gradient(#d9e3da 1px, transparent 1px); background-size: 19px 19px; }
+    .word-display { display: grid; place-items: center; width: 100%; min-height: 180px; padding: 25px; border: 1px solid #e6ebdf; border-radius: 8px; background: var(--lime); text-align: center; box-shadow: 0 6px 0 rgba(23,74,61,.07); }
+    .word-display.is-empty { border-style: dashed; background: #f3f6ed; box-shadow: none; }
+    .word-hint { display: block; color: #4a6149; font-size: 12px; }
+    .drawn-word { display: block; max-width: 100%; overflow-wrap: anywhere; font-family: "Kanit", sans-serif; font-size: clamp(42px, 7vw, 70px); font-weight: 600; line-height: 1.12; }
+    .draw-subtitle { margin-top: 9px; color: #4a6149; font-size: 12px; }
+    .contestant-settings { padding: 0 14px 15px; }
+    .contestant-fields { display: grid; grid-template-columns: minmax(0, 1fr) 105px; gap: 10px; margin-top: 11px; }
+    .contestant-field { display: grid; gap: 5px; }
+    .contestant-field label { color: #526158; font-size: 11px; font-weight: 600; }
+    .contestant-field input { width: 100%; height: 38px; padding: 0 10px; border: 1px solid #dfe5df; border-radius: 5px; color: var(--ink); background: white; font: inherit; font-size: 13px; }
+    .contestant-field input:disabled { color: #78827c; background: #f4f6f3; }
+    .contestant-settings-hint { margin: 9px 0 0; color: #7a857d; font-size: 10px; line-height: 1.55; }
+    .timer-setup { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 12px 18px; padding: 14px 20px; border-top: 1px solid #edf0ec; background: #fff; }
+    .timer-setup-title { color: #526158; font-size: 11px; font-weight: 600; }
+    .timer-modes { display: inline-flex; gap: 3px; padding: 3px; border: 1px solid #e2e8e1; border-radius: 6px; background: #f5f7f3; }
+    .timer-mode-option { position: relative; display: inline-flex; align-items: center; min-height: 32px; padding: 5px 11px; border-radius: 4px; color: #667269; font-size: 11px; cursor: pointer; }
+    .timer-mode-option:has(input:checked) { color: var(--forest); background: white; box-shadow: 0 1px 3px rgba(20,40,30,.12); font-weight: 600; }
+    .timer-mode-option input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+    .timer-mode-option:has(input:focus-visible) { outline: 2px solid var(--coral); outline-offset: 2px; }
+    .timer-duration-control { display: inline-flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: 7px; color: #526158; font-size: 11px; }
+    .timer-duration-control input { width: 126px; height: 36px; padding: 0 8px; border: 1px solid #dfe5df; border-radius: 5px; font-variant-numeric: tabular-nums; text-align: center; }
+    .timer-duration-control input:disabled { color: #9aa39c; background: #f4f6f3; }
+    .timer-setup-summary { flex-basis: 100%; color: #7a857d; font-size: 10px; text-align: center; }
+    .draw-actions { display: flex; gap: 10px; padding: 0 22px 22px; background: #fbfcf9; }
+    .draw-button { flex: 1; min-height: 49px; padding: 11px 18px; border: 0; border-radius: 6px; color: white; background: var(--forest); font-size: 14px; font-weight: 600; transition: background .16s ease, transform .16s ease; }
+    .draw-button:hover:not(:disabled) { background: var(--forest-deep); transform: translateY(-1px); }
+    .draw-button:disabled { cursor: not-allowed; opacity: .48; }
+    .undo-button { min-width: 96px; padding: 10px 14px; border: 1px solid #dfe5df; border-radius: 6px; color: #40524a; background: white; font-size: 12px; }
+    .undo-button:hover:not(:disabled) { background: #f3f6f2; }
+    .undo-button:disabled { cursor: not-allowed; opacity: .45; }
+    .showcase-button { min-height: 49px; padding: 10px 13px; border: 1px solid #dfe5df; border-radius: 6px; color: var(--forest); background: white; font-size: 12px; font-weight: 600; white-space: nowrap; }
+    .showcase-button:hover:not(:disabled) { background: #f3f7f2; }
+    .showcase-button:disabled { cursor: not-allowed; opacity: .45; }
+    .showcase-overlay { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; width: 100%; min-height: 100vh; min-height: 100dvh; padding: 7vh 6vw 11vh; overflow: hidden; border: 0; color: var(--showcase-color, var(--lime)); background-color: var(--forest-deep); background-image: radial-gradient(ellipse at 50% 42%, rgba(80,132,91,.2), transparent 58%), linear-gradient(135deg, #102d26 0%, #174a3d 56%, #0c241f 100%); text-align: center; cursor: pointer; }
+    .showcase-overlay::after { position: fixed; inset: 14px; border: 1px solid rgba(231,241,225,.2); content: ""; pointer-events: none; }
+    .showcase-overlay[hidden] { display: none; }
+    .showcase-stage { position: relative; z-index: 1; display: grid; justify-items: center; align-content: center; gap: clamp(16px, 3vh, 30px); width: min(100%, 1120px); min-height: min(74vh, 760px); pointer-events: none; }
+    .showcase-intro-image { position: fixed; inset: 0; z-index: 0; display: block; width: 100vw; height: 100vh; height: 100dvh; max-width: none; max-height: none; object-fit: cover; opacity: 1; pointer-events: none; }
+    .showcase-intro-image.is-fading-out { animation: intro-media-fade .8s ease forwards; }
+    .showcase-intro-image.is-fading-in { animation: intro-media-fade-in .8s ease both; }
+    @keyframes intro-media-fade { from { opacity: 1; } to { opacity: 0; } }
+    @keyframes intro-media-fade-in { from { opacity: 0; } to { opacity: 1; } }
+    .showcase-intro-image[hidden] { display: none; }
+    @media (prefers-reduced-motion: reduce) { .showcase-intro-image.is-fading-out, .showcase-intro-image.is-fading-in { animation-duration: .01ms; } }
+    .showcase-word { display: block; max-width: 100%; max-height: 56vh; overflow-wrap: anywhere; font-family: "Kanit", sans-serif; font-size: clamp(54px, 11vw, 150px); font-weight: 600; line-height: 1.08; text-shadow: 0 3px 18px rgba(0,0,0,.62), 0 1px 3px rgba(0,0,0,.85); }
+    .showcase-hint { position: fixed; bottom: max(28px, env(safe-area-inset-bottom)); left: 50%; z-index: 21; color: rgba(248,250,242,.8); font-size: 13px; transform: translateX(-50%); pointer-events: none; }
+    .stopwatch-panel { position: fixed; right: 16px; bottom: max(20px, env(safe-area-inset-bottom)); left: 16px; z-index: 22; display: grid; justify-items: center; gap: 5px; pointer-events: none; }
+    .stopwatch-panel[hidden] { display: none; }
+    .stopwatch-display { position: fixed; top: 62%; left: 50%; z-index: 23; display: block; box-sizing: border-box; width: min(88vw, 680px); min-width: 0; max-width: calc(100vw - 24px); color: white; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: clamp(56px, 8vw, 92px); font-weight: 700; font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; line-height: 1; text-align: center; white-space: nowrap; text-shadow: 0 2px 6px rgba(0,0,0,.9); transform: translateX(-50%); }
+    .stopwatch-display.is-countdown-warning { color: #ff3030; text-shadow: none; animation: timer-warning .3s steps(2, end) infinite; }
+    .stopwatch-display.is-countdown-expired { color: #ff3030; text-shadow: none; animation: timer-expired 1s steps(2, end) infinite; }
+    @keyframes timer-warning { 0%, 100% { opacity: 1; } 50% { opacity: .2; } }
+    @keyframes timer-expired { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+    @media (prefers-reduced-motion: reduce) { .stopwatch-display.is-countdown-warning, .stopwatch-display.is-countdown-expired { animation: none; opacity: 1; } }
+    .stopwatch-actions { display: flex; gap: 8px; pointer-events: auto; }
+    .stopwatch-button { min-width: 124px; min-height: 48px; padding: 9px 15px; border: 1px solid rgba(255,255,255,.55); border-radius: 6px; color: #15241d; background: rgba(255,255,255,.94); font-size: 14px; font-weight: 600; box-shadow: 0 4px 16px rgba(0,0,0,.2); }
+    .stopwatch-button:hover { background: white; }
+    .stopwatch-button.reset { min-width: 92px; color: white; background: rgba(20,35,29,.72); }
+    .stopwatch-button.save { min-width: 160px; color: #15241d; background: var(--lime); }
+    .stopwatch-button:disabled { cursor: default; opacity: .65; }
+    .stopwatch-status { min-height: 18px; color: white; font-size: 12px; text-shadow: 0 2px 9px rgba(0,0,0,.9); }
+    .list-panel, .manage-panel { overflow: hidden; border: 1px solid #e5eae5; border-radius: 8px; background: var(--paper); }
+    .panel-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 17px; border-bottom: 1px solid #edf0ec; }
+    .panel-heading h2 { margin: 0; font-size: 13px; font-weight: 600; }
+    .panel-count { color: var(--muted); font-size: 11px; white-space: nowrap; }
+    .tabs { display: flex; gap: 5px; padding: 12px 14px 0; }
+    .tab-button { padding: 7px 10px; border: 0; border-radius: 5px; color: #758078; background: transparent; font-size: 11px; }
+    .tab-button[aria-selected="true"] { color: var(--forest); background: var(--green-light); font-weight: 600; }
+    .search-wrap { padding: 10px 14px 0; }
+    .search-input { width: 100%; height: 36px; padding: 0 10px; border: 1px solid #e6eae5; border-radius: 5px; color: var(--ink); background: #fcfdfb; font-size: 12px; }
+    .word-list { display: grid; gap: 1px; max-height: 286px; overflow: auto; margin: 10px 0 0; padding: 0 8px 8px; list-style: none; }
+    .word-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 39px; padding: 7px 9px; border-bottom: 1px solid #f0f2ef; font-size: 12px; }
+    .word-item:last-child { border-bottom: 0; }
+    .word-item-text { min-width: 0; overflow-wrap: anywhere; }
+    .word-item-meta { flex: 0 0 auto; color: #8a938c; font-size: 10px; }
+    .empty-list { padding: 25px 12px 29px; color: #8b948e; text-align: center; font-size: 12px; }
+    .manage-panel { padding-bottom: 16px; }
+    .manage-intro { margin: 0; padding: 12px 16px 8px; color: #727d75; font-size: 11px; line-height: 1.65; }
+    .add-form { display: flex; gap: 7px; padding: 7px 14px 4px; }
+    .add-input { min-width: 0; flex: 1; height: 38px; padding: 0 10px; border: 1px solid #e3e9e3; border-radius: 5px; font-size: 12px; }
+    .add-button { width: 40px; border: 0; border-radius: 5px; color: var(--forest); background: var(--lime); font-size: 22px; line-height: 1; }
+    .upload-zone { margin: 10px 14px 0; padding: 15px 12px; border: 1px dashed #cbd6cc; border-radius: 6px; background: #fafcf9; text-align: center; transition: border-color .15s, background .15s; }
+    .upload-zone.drag-over { border-color: var(--forest); background: #edf5ee; }
+    .upload-title { margin: 0; font-size: 12px; font-weight: 600; }
+    .upload-detail { margin: 4px 0 11px; color: #858f87; font-size: 10px; }
+    .upload-actions { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+    .small-button { min-height: 32px; padding: 6px 10px; border: 1px solid #dce5dc; border-radius: 5px; color: #355643; background: white; font-size: 10px; font-weight: 500; }
+    .small-button:hover { background: #f3f7f2; }
+    .upload-status { min-height: 18px; margin: 7px 15px 0; color: #57705f; font-size: 10px; text-align: center; }
+    .upload-status.error { color: #b24b3a; }
+    .customize-divider { height: 1px; margin: 16px 14px 0; background: #edf0ec; }
+    .customize-heading { margin: 14px 15px 9px; font-size: 12px; font-weight: 600; }
+    .customize-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 0 14px 9px; }
+    .customize-label { font-size: 11px; font-weight: 500; }
+    .color-control { display: flex; align-items: center; gap: 7px; color: #707a72; font-size: 10px; }
+    .color-input { width: 36px; height: 30px; padding: 2px; border: 1px solid #dfe5df; border-radius: 5px; background: white; cursor: pointer; }
+    .image-actions { display: flex; gap: 7px; }
+    .image-status { min-width: 0; flex: 1; align-self: center; overflow: hidden; color: #78827c; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+    .image-status.has-image { color: #355643; }
+    .toast { position: fixed; right: 22px; bottom: 20px; z-index: 5; max-width: min(390px, calc(100vw - 32px)); padding: 11px 15px; border-radius: 6px; color: white; background: #1d3128; box-shadow: 0 10px 30px rgba(0,0,0,.2); font-size: 12px; opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity .2s ease, transform .2s ease; }
+    .toast.is-visible { opacity: 1; transform: translateY(0); }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; clip-path: inset(50%); }
+    @media (max-width: 900px) {
+      .app-shell { grid-template-columns: 210px minmax(0, 1fr); }
+      .main { padding: 24px 20px 34px; }
+      .content { grid-template-columns: minmax(0, 1fr); }
+      .secondary-column { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+    }
+    @media (max-width: 620px) {
+      .app-shell { display: block; }
+      .sidebar { padding: 13px 15px; }
+      .brand { padding: 0; }
+      .sidebar .side-label, .sidebar .event-input-wrap, .sidebar .side-rule, .sidebar .side-stats, .sidebar .side-actions, .sidebar-footer { display: none; }
+      .main { padding: 23px 14px 32px; }
+      .topbar { align-items: flex-start; margin-bottom: 21px; }
+      h1 { font-size: 24px; }
+      .session-pill { padding: 7px 9px; font-size: 10px; }
+      .secondary-column { grid-template-columns: minmax(0, 1fr); }
+      .draw-panel-head { padding: 15px 16px; }
+      .draw-stage { min-height: 245px; padding: 24px 15px 18px; }
+      .word-display { min-height: 170px; padding: 20px 14px; }
+      .draw-actions { padding: 0 15px 16px; }
+      .undo-button { min-width: 80px; padding-inline: 10px; }
+      .showcase-button { padding-inline: 9px; font-size: 10px; }
+      .stopwatch-panel { right: 12px; bottom: max(14px, env(safe-area-inset-bottom)); left: 12px; gap: 4px; }
+      .stopwatch-display { width: min(92vw, 680px); font-size: clamp(46px, 14vw, 68px); }
+      .stopwatch-actions { justify-content: center; gap: 5px; width: 100%; }
+      .stopwatch-button { min-width: 0; min-height: 42px; padding-inline: 9px; font-size: 12px; }
+      .stopwatch-button.reset { min-width: 64px; }
+      .stopwatch-button.save { min-width: 112px; }
+      .stopwatch-status { font-size: 10px; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="ข้อมูลกิจกรรม">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">จ</div>
+        <div><div class="brand-name">จับคำ</div><div class="brand-caption">CONTEST KEYWORD DRAW</div></div>
+      </div>
+      <p class="side-label">ชื่อกิจกรรม</p>
+      <div class="event-input-wrap"><label class="sr-only" for="eventName">ชื่อกิจกรรม</label><input id="eventName" class="event-input" maxlength="50" placeholder="เช่น รอบชิงชนะเลิศ"></div>
+      <div class="side-rule"></div>
+      <p class="side-label">ภาพรวมคำศัพท์</p>
+      <div class="side-stats">
+        <div class="side-stat"><span>คำในคิว</span><strong id="remainingCount">0</strong></div>
+        <div class="side-stat"><span>ใช้ไปแล้ว</span><strong id="usedCount">0</strong></div>
+        <div class="side-stat"><span>ทั้งหมด</span><strong id="totalCount">0</strong></div>
+      </div>
+      <div class="side-actions">
+        <button id="resetButton" class="side-button" type="button"><span>เริ่มรอบใหม่</span><span class="arrow" aria-hidden="true">↻</span></button>
+        <button id="clearButton" class="side-button" type="button"><span>ล้างคลังคำทั้งหมด</span><span class="arrow" aria-hidden="true">×</span></button>
+      </div>
+      <div class="sidebar-footer">คลังคำและการตั้งค่าบันทึกในอุปกรณ์นี้<br>ผลที่แชร์ซิงก์ผ่าน Supabase</div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div><div class="eyebrow">เครื่องมือสำหรับผู้ดำเนินรายการ</div><h1>สุ่มคำประกวด</h1></div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end"><div class="session-pill"><span class="live-dot" aria-hidden="true"></span><span id="sessionLabel">พร้อมใช้งาน</span></div><button id="shareReportButton" class="report-button" type="button">ดูผลการสุ่ม</button></div>
+      </header>
+      <div class="content">
+        <section class="primary-column" aria-label="สุ่มคำและคลังคำ">
+          <div class="draw-panel">
+            <div class="draw-panel-head"><h2 class="section-label">คำที่สุ่มได้</h2><span class="round-label" id="drawNumber">รอบที่ 0</span></div>
+            <div class="draw-stage">
+              <div id="wordDisplay" class="word-display is-empty" aria-live="polite" aria-atomic="true">
+                <div><span class="word-hint">คำถัดไปกำลังรอคุณอยู่</span><span class="drawn-word" id="currentWord">พร้อมหรือยัง?</span><span class="draw-subtitle" id="currentSubtitle">เพิ่มคำหรือโหลดรายการจาก Excel เพื่อเริ่ม</span></div>
+              </div>
+            </div>
+            <div class="timer-setup" aria-label="ตั้งค่าจับเวลาก่อนเข้าเต็มจอ">
+              <span class="timer-setup-title">ตั้งค่าจับเวลาก่อนเข้าเต็มจอ</span>
+              <div class="timer-modes" role="radiogroup" aria-label="รูปแบบจับเวลา">
+                <label class="timer-mode-option"><input type="radio" name="timerMode" value="up" checked>เดินหน้า</label>
+                <label class="timer-mode-option"><input type="radio" name="timerMode" value="down">ถอยหลัง</label>
+              </div>
+              <div class="timer-duration-control"><label for="timerDuration">เวลาถอยหลัง (นาที.วินาที.เซนติวินาที)</label><input id="timerDuration" type="text" placeholder="01.00.00" value="01.00.00" autocomplete="off" aria-describedby="timerDurationHint"><span id="timerDurationHint" class="sr-only">พิมพ์รูปแบบ นาที.วินาที.เซนติวินาที เช่น 00.10.25</span></div>
+              <span id="timerSetupSummary" class="timer-setup-summary">จับเวลาเดินหน้า</span>
+            </div>
+            <div class="draw-actions">
+              <button id="drawButton" class="draw-button" type="button">สุ่มคำถัดไป</button>
+              <button id="showcaseButton" class="showcase-button" type="button" title="คลิกหรือกด Space เพื่อหยุด กด Escape เพื่อออก">สุ่มเร็วเต็มจอ</button>
+              <button id="undoButton" class="undo-button" type="button" disabled aria-label="ย้อนคำที่สุ่มล่าสุด">↶ ย้อนกลับ</button>
+            </div>
+          </div>
+          <section class="list-panel" aria-labelledby="listHeading">
+            <div class="panel-heading"><h2 id="listHeading">รายการคำ</h2><span id="listCount" class="panel-count">0 คำ</span></div>
+            <div class="tabs" role="tablist" aria-label="เลือกสถานะคำ">
+              <button id="remainingTab" class="tab-button" type="button" role="tab" aria-selected="true">ในคิว</button>
+              <button id="usedTab" class="tab-button" type="button" role="tab" aria-selected="false">ใช้แล้ว</button>
+            </div>
+            <div class="search-wrap"><label class="sr-only" for="searchInput">ค้นหาคำ</label><input id="searchInput" class="search-input" type="search" placeholder="ค้นหาคำในรายการ..."></div>
+            <ul id="wordList" class="word-list" aria-live="polite"></ul>
+          </section>
+        </section>
+
+        <aside class="secondary-column" aria-label="จัดการคลังคำ">
+          <section class="manage-panel" aria-labelledby="contestantHeading">
+            <div class="panel-heading"><h2 id="contestantHeading">ประเภทผู้เข้าประกวดรอบนี้</h2><span id="contestantRoundLabel" class="panel-count">รอบที่ 1</span></div>
+            <div class="contestant-settings">
+              <div class="contestant-fields">
+                <div class="contestant-field"><label for="contestantType">ตัวอักษรประเภท</label><input id="contestantType" type="text" maxlength="4" value="M" autocomplete="off" spellcheck="false" aria-describedby="contestantTypeHint"></div>
+                <div class="contestant-field"><label for="contestantCount">จำนวนลำดับ</label><input id="contestantCount" type="number" min="1" max="14" step="1" value="14" inputmode="numeric"></div>
+              </div>
+              <p id="contestantTypeHint" class="contestant-settings-hint">หมายเลขที่ระบบจะกำหนด: <strong id="contestantRangePreview">M1–M14</strong> · แก้ไขได้ก่อนเริ่มสุ่ม</p>
+            </div>
+          </section>
+          <section class="manage-panel" aria-labelledby="manageHeading">
+            <div class="panel-heading"><h2 id="manageHeading">เพิ่มคำเข้าคลัง</h2><span class="panel-count">เพิ่มได้ทันที</span></div>
+            <p class="manage-intro">พิมพ์คำที่ต้องการ หรือเลือกไฟล์ Excel เพื่อเพิ่มหลายคำพร้อมกัน</p>
+            <form id="addForm" class="add-form">
+              <label class="sr-only" for="addInput">พิมพ์คำใหม่</label>
+              <input id="addInput" class="add-input" maxlength="100" placeholder="พิมพ์คำใหม่..." autocomplete="off">
+              <button class="add-button" type="submit" aria-label="เพิ่มคำ">+</button>
+            </form>
+            <div id="dropZone" class="upload-zone">
+              <p class="upload-title">นำเข้ารายการจาก Excel</p>
+              <p class="upload-detail">รองรับ .xlsx, .xls และ .csv</p>
+              <div class="upload-actions">
+                <button id="chooseFileButton" class="small-button" type="button">เลือกไฟล์</button>
+                <button id="templateButton" class="small-button" type="button">โหลดไฟล์ตัวอย่าง</button>
+              </div>
+              <input id="fileInput" class="sr-only" type="file" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv">
+            </div>
+            <div id="uploadStatus" class="upload-status" role="status" aria-live="polite"></div>
+            <div class="customize-divider"></div>
+            <h3 class="customize-heading">ตกแต่งจอสุ่มเต็มจอ</h3>
+            <div class="customize-row">
+              <label class="customize-label" for="showcaseColor">สีตัวอักษร</label>
+              <div class="color-control"><span id="colorValue">#D7F36A</span><input id="showcaseColor" class="color-input" type="color" value="#d7f36a" aria-label="เลือกสีตัวอักษรบนจอเต็ม"></div>
+            </div>
+            <div class="customize-row">
+              <span class="customize-label">ภาพพื้นหลัง</span>
+              <div class="image-actions"><span id="backgroundStatus" class="image-status">ยังไม่ได้เลือกรูป</span><button id="chooseBackgroundButton" class="small-button" type="button">เลือกรูป</button><button id="clearBackgroundButton" class="small-button" type="button" disabled>ล้าง</button></div>
+            </div>
+            <input id="backgroundInput" class="sr-only" type="file" accept="image/png,image/gif,image/jpeg,.png,.gif,.jpg,.jpeg">
+            <div class="customize-row">
+              <span class="customize-label">ภาพก่อนเริ่ม (แยกจากพื้นหลัง)</span>
+              <div class="image-actions"><span id="introMediaStatus" class="image-status">ยังไม่ได้เลือกไฟล์</span><button id="chooseIntroMediaButton" class="small-button" type="button">เลือกรูป/GIF</button><button id="clearIntroMediaButton" class="small-button" type="button" disabled>ล้าง</button></div>
+            </div>
+            <input id="introMediaInput" class="sr-only" type="file" accept="image/png,image/gif,image/jpeg,.png,.gif,.jpg,.jpeg">
+          </section>
+        </aside>
+      </div>
+    </main>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <dialog id="shareDialog" class="share-dialog" aria-labelledby="shareDialogTitle">
+    <h2 id="shareDialogTitle">ลิงก์แชร์ผลการสุ่ม</h2>
+    <p>ผู้ที่มีลิงก์นี้จะเห็นผลล่าสุดและการเปลี่ยนแปลงแบบเรียลไทม์</p>
+    <label class="sr-only" for="shareUrl">ลิงก์แชร์</label>
+    <input id="shareUrl" class="share-url" type="url" readonly>
+    <div class="share-dialog-actions">
+      <button id="copyShareUrl" type="button">คัดลอกลิงก์</button>
+      <a id="openSharedResults" target="_blank" rel="noopener">เปิดหน้ารายงาน</a>
+      <button id="closeShareDialog" class="secondary" type="button">ปิด</button>
+    </div>
+  </dialog>
+  <button id="showcaseOverlay" class="showcase-overlay" type="button" aria-label="พื้นหลังพร้อมแล้ว กด Space เพื่อเริ่มสุ่มคำ กด Escape เพื่อออก" aria-live="off" hidden>
+    <span id="showcaseStage" class="showcase-stage">
+      <img id="showcaseIntroImage" class="showcase-intro-image" alt="" hidden>
+      <span id="showcaseWord" class="showcase-word"></span>
+    </span>
+  </button>
+  <span id="showcaseHint" class="showcase-hint" hidden>กด Spacebar เพื่อเริ่ม</span>
+  <section id="stopwatchPanel" class="stopwatch-panel" aria-label="นาฬิกาจับเวลา" hidden>
+    <output id="stopwatchDisplay" class="stopwatch-display" aria-live="off">00.00.00</output>
+    <div class="stopwatch-actions">
+      <button id="stopwatchToggle" class="stopwatch-button" type="button">เริ่มจับเวลา</button>
+      <button id="stopwatchReset" class="stopwatch-button reset" type="button">รีเซ็ต</button>
+      <button id="stopwatchSave" class="stopwatch-button save" type="button">จบและบันทึกเวลา</button>
+    </div>
+    <span id="stopwatchStatus" class="stopwatch-status" role="status" aria-live="polite">เริ่มจับเวลาเพื่อบันทึกผล</span>
+  </section>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.118.0';
+    const supabaseClient = createClient(window.SUPABASE_CONFIG.url, window.SUPABASE_CONFIG.publishableKey);
+    (() => {
+      const STORAGE_KEY = 'จับคำ.keyword-draw.v1';
+      const initialState = { remaining: [], used: [], history: [], currentId: null, eventName: '', showcaseTextColor: '#d7f36a', timerMode: 'up', timerDurationMs: 60000, share: null, eventId: makeUuid(), roundNumber: 1, contestantType: 'M', contestantCount: 14 };
+      let state = loadState();
+      let activeTab = 'remaining';
+      let toastTimer;
+      let backgroundObjectUrl = null;
+      let introMediaObjectUrl = null;
+      let introFadeTimer = null;
+      let showcaseMode = 'closed';
+      let rollingTimer = null;
+      let rollingId = null;
+      let rollingIndex = -1;
+      let stopwatchElapsed = 0;
+      let stopwatchStartedAt = null;
+      let stopwatchInterval = null;
+      let stopwatchFinalized = false;
+      let stopwatchWasStarted = false;
+      let reportSyncTimer = null;
+      let reportCreatePromise = null;
+
+      const elements = {
+        eventName: document.querySelector('#eventName'), remainingCount: document.querySelector('#remainingCount'),
+        usedCount: document.querySelector('#usedCount'), totalCount: document.querySelector('#totalCount'),
+        currentWord: document.querySelector('#currentWord'), currentSubtitle: document.querySelector('#currentSubtitle'),
+        wordDisplay: document.querySelector('#wordDisplay'), drawNumber: document.querySelector('#drawNumber'),
+        sessionLabel: document.querySelector('#sessionLabel'), drawButton: document.querySelector('#drawButton'),
+        timerModeInputs: [...document.querySelectorAll('input[name="timerMode"]')], timerDuration: document.querySelector('#timerDuration'),
+        timerSetupSummary: document.querySelector('#timerSetupSummary'),
+        showcaseButton: document.querySelector('#showcaseButton'), showcaseOverlay: document.querySelector('#showcaseOverlay'),
+        showcaseWord: document.querySelector('#showcaseWord'), showcaseColor: document.querySelector('#showcaseColor'),
+        showcaseHint: document.querySelector('#showcaseHint'),
+        stopwatchPanel: document.querySelector('#stopwatchPanel'), stopwatchDisplay: document.querySelector('#stopwatchDisplay'),
+        stopwatchToggle: document.querySelector('#stopwatchToggle'), stopwatchReset: document.querySelector('#stopwatchReset'),
+        stopwatchSave: document.querySelector('#stopwatchSave'), stopwatchStatus: document.querySelector('#stopwatchStatus'),
+        colorValue: document.querySelector('#colorValue'), backgroundInput: document.querySelector('#backgroundInput'),
+        backgroundStatus: document.querySelector('#backgroundStatus'), clearBackgroundButton: document.querySelector('#clearBackgroundButton'),
+        introMediaInput: document.querySelector('#introMediaInput'), introMediaImage: document.querySelector('#showcaseIntroImage'),
+        introMediaStatus: document.querySelector('#introMediaStatus'), clearIntroMediaButton: document.querySelector('#clearIntroMediaButton'),
+        undoButton: document.querySelector('#undoButton'), wordList: document.querySelector('#wordList'),
+        listCount: document.querySelector('#listCount'), searchInput: document.querySelector('#searchInput'),
+        remainingTab: document.querySelector('#remainingTab'), usedTab: document.querySelector('#usedTab'),
+        addForm: document.querySelector('#addForm'), addInput: document.querySelector('#addInput'),
+        fileInput: document.querySelector('#fileInput'), uploadStatus: document.querySelector('#uploadStatus'),
+        dropZone: document.querySelector('#dropZone'), toast: document.querySelector('#toast'),
+        shareReportButton: document.querySelector('#shareReportButton'), shareDialog: document.querySelector('#shareDialog'),
+        shareUrl: document.querySelector('#shareUrl'), contestantType: document.querySelector('#contestantType'),
+        contestantCount: document.querySelector('#contestantCount'), contestantRoundLabel: document.querySelector('#contestantRoundLabel'),
+        contestantRangePreview: document.querySelector('#contestantRangePreview')
+      };
+
+      function makeUuid() {
+        if (crypto.randomUUID) return crypto.randomUUID();
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, char => {
+          const random = Math.floor(Math.random() * 16);
+          return (char === 'x' ? random : (random & 0x3) | 0x8).toString(16);
+        });
+      }
+
+      function loadState() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+          if (!saved || !Array.isArray(saved.remaining) || !Array.isArray(saved.used)) return structuredClone(initialState);
+          const restored = { ...initialState, ...saved, history: Array.isArray(saved.history) ? saved.history : [] };
+          if (!/^#[\da-f]{6}$/i.test(restored.showcaseTextColor)) restored.showcaseTextColor = initialState.showcaseTextColor;
+          delete restored.sheetWebAppUrl;
+          if (!restored.eventId || typeof restored.eventId !== 'string') restored.eventId = makeUuid();
+          if (!Number.isInteger(restored.roundNumber) || restored.roundNumber < 1) restored.roundNumber = 1;
+          if (!/^[A-Z]{1,4}$/.test(restored.contestantType)) restored.contestantType = 'M';
+          if (!Number.isInteger(restored.contestantCount) || restored.contestantCount < 1 || restored.contestantCount > 14) restored.contestantCount = 14;
+          if (!restored.share || typeof restored.share.shareId !== 'string' || typeof restored.share.writerToken !== 'string') restored.share = null;
+          else restored.share = { ...restored.share, eventId: restored.eventId, roundNumber: restored.roundNumber, contestantType: restored.contestantType, contestantCount: restored.contestantCount };
+          if (!['up', 'down'].includes(restored.timerMode)) restored.timerMode = initialState.timerMode;
+          if (!Number.isFinite(saved.timerDurationMs) || saved.timerDurationMs <= 0) {
+            const legacyTimerValue = Number(restored.timerMinutes);
+            const legacyUnitMs = restored.timerUnit === 'seconds' ? 1000 : 60000;
+            restored.timerDurationMs = Number.isFinite(legacyTimerValue) && legacyTimerValue > 0
+              ? legacyTimerValue * legacyUnitMs
+              : initialState.timerDurationMs;
+          } else restored.timerDurationMs = saved.timerDurationMs;
+          delete restored.timerMinutes;
+          delete restored.timerUnit;
+          return restored;
+        } catch { return structuredClone(initialState); }
+      }
+
+      function persist() {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+        catch { showToast('บันทึกข้อมูลไม่สำเร็จ พื้นที่จัดเก็บอาจเต็ม'); }
+      }
+
+      function getReportSnapshot() {
+        return {
+          p_event_id: state.eventId,
+          p_round_number: state.roundNumber,
+          p_category: state.contestantType,
+          p_contestant_count: state.contestantCount,
+          p_event_name: state.eventName || '',
+          p_total_count: state.remaining.length + state.used.length,
+          p_remaining_count: state.remaining.length,
+          p_draws: state.used.map((word, index) => ({
+            id: word.id,
+            text: word.text,
+            drawnAt: word.drawnAt,
+            recipientId: word.recipientId || `${state.contestantType}${(index % state.contestantCount) + 1}`,
+            timeUsedMs: Number.isFinite(word.timeUsedMs) ? word.timeUsedMs : null
+          }))
+        };
+      }
+
+      async function saveSharedReport() {
+        if (!state.share) return;
+        const { error } = await supabaseClient.rpc('save_keyword_draw_report', {
+          p_share_id: state.share.shareId,
+          p_event_id: state.share.eventId,
+          p_round_number: state.share.roundNumber,
+          p_category: state.share.contestantType,
+          p_contestant_count: state.share.contestantCount,
+          p_writer_token: state.share.writerToken,
+          ...getReportSnapshot()
+        });
+        if (error) throw error;
+      }
+
+      function scheduleSharedReportSave() {
+        if (!state.share && !state.used.length) return;
+        clearTimeout(reportSyncTimer);
+        reportSyncTimer = setTimeout(() => {
+          syncSharedReport().catch(() => showToast('ซิงก์ผลไป Supabase ไม่สำเร็จ'));
+        }, 250);
+      }
+
+      async function syncSharedReport() {
+        if (!state.share) await ensureSharedReport();
+        await saveSharedReport();
+      }
+
+      async function ensureSharedReport() {
+        if (state.share) {
+          await saveSharedReport();
+          return state.share;
+        }
+        if (!reportCreatePromise) {
+          reportCreatePromise = (async () => {
+            const share = {
+              shareId: makeUuid(),
+              writerToken: `${makeUuid()}${makeUuid()}`,
+              eventId: state.eventId,
+              roundNumber: state.roundNumber,
+              contestantType: state.contestantType,
+              contestantCount: state.contestantCount
+            };
+            const { error } = await supabaseClient.rpc('create_keyword_draw_report', {
+              p_share_id: share.shareId,
+              p_event_id: share.eventId,
+              p_round_number: share.roundNumber,
+              p_category: share.contestantType,
+              p_contestant_count: share.contestantCount,
+              p_writer_token: share.writerToken,
+              ...getReportSnapshot()
+            });
+            if (error) throw error;
+            state.share = share;
+            persist();
+            return share;
+          })();
+        }
+        try { return await reportCreatePromise; }
+        finally { reportCreatePromise = null; }
+      }
+
+      async function showSharedReportLink() {
+        elements.shareReportButton.disabled = true;
+        elements.shareReportButton.textContent = 'กำลังสร้างลิงก์…';
+        try {
+          const share = await ensureSharedReport();
+          const report = new URL('results.html', window.location.href);
+          report.searchParams.set('id', share.shareId);
+          elements.shareUrl.value = report.href;
+          document.querySelector('#openSharedResults').href = report.href;
+          elements.shareDialog.showModal();
+        } catch (error) {
+          console.error('Unable to create the Supabase share link', error);
+          showToast('เชื่อมต่อ Supabase ไม่สำเร็จ ตรวจสอบการตั้งค่าและอินเทอร์เน็ต');
+        } finally {
+          elements.shareReportButton.disabled = false;
+          elements.shareReportButton.textContent = 'ดูผลการสุ่ม';
+        }
+      }
+
+      function openSettingsDatabase() {
+        return new Promise((resolve, reject) => {
+          const request = indexedDB.open('keyword-draw-settings', 1);
+          request.onupgradeneeded = () => request.result.createObjectStore('assets');
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error || new Error('เปิดพื้นที่เก็บภาพไม่สำเร็จ'));
+        });
+      }
+
+      async function storeBackgroundAsset(asset, key = 'showcase-background') {
+        const database = await openSettingsDatabase();
+        return new Promise((resolve, reject) => {
+          const transaction = database.transaction('assets', 'readwrite');
+          transaction.objectStore('assets').put(asset, key);
+          transaction.oncomplete = () => { database.close(); resolve(); };
+          transaction.onerror = () => { database.close(); reject(transaction.error || new Error('บันทึกรูปไม่สำเร็จ')); };
+          transaction.onabort = () => { database.close(); reject(transaction.error || new Error('บันทึกรูปไม่สำเร็จ')); };
+        });
+      }
+
+      async function readBackgroundAsset(key = 'showcase-background') {
+        const database = await openSettingsDatabase();
+        return new Promise((resolve, reject) => {
+          const transaction = database.transaction('assets', 'readonly');
+          const request = transaction.objectStore('assets').get(key);
+          let asset = null;
+          request.onsuccess = () => { asset = request.result || null; };
+          transaction.oncomplete = () => { database.close(); resolve(asset); };
+          transaction.onerror = () => { database.close(); reject(transaction.error || new Error('อ่านรูปไม่สำเร็จ')); };
+        });
+      }
+
+      async function deleteBackgroundAsset(key = 'showcase-background') {
+        const database = await openSettingsDatabase();
+        return new Promise((resolve, reject) => {
+          const transaction = database.transaction('assets', 'readwrite');
+          transaction.objectStore('assets').delete(key);
+          transaction.oncomplete = () => { database.close(); resolve(); };
+          transaction.onerror = () => { database.close(); reject(transaction.error || new Error('ลบรูปไม่สำเร็จ')); };
+          transaction.onabort = () => { database.close(); reject(transaction.error || new Error('ลบรูปไม่สำเร็จ')); };
+        });
+      }
+
+      function applyBackgroundAsset(asset) {
+        if (backgroundObjectUrl) URL.revokeObjectURL(backgroundObjectUrl);
+        backgroundObjectUrl = asset ? URL.createObjectURL(asset.blob) : null;
+        elements.showcaseOverlay.style.backgroundImage = backgroundObjectUrl
+          ? `linear-gradient(rgba(0, 0, 0, .22), rgba(0, 0, 0, .22)), url("${backgroundObjectUrl}")`
+          : '';
+        elements.showcaseOverlay.style.backgroundSize = backgroundObjectUrl ? 'cover, cover' : '';
+        elements.showcaseOverlay.style.backgroundPosition = backgroundObjectUrl ? 'center, center' : '';
+        elements.backgroundStatus.textContent = asset?.name || 'ยังไม่ได้เลือกรูป';
+        elements.backgroundStatus.classList.toggle('has-image', Boolean(asset));
+        elements.clearBackgroundButton.disabled = !asset;
+      }
+
+      function applyIntroMediaAsset(asset) {
+        if (introMediaObjectUrl) URL.revokeObjectURL(introMediaObjectUrl);
+        introMediaObjectUrl = asset ? URL.createObjectURL(asset.blob) : null;
+        elements.introMediaImage.src = introMediaObjectUrl || '';
+        elements.introMediaImage.hidden = !introMediaObjectUrl || showcaseMode !== 'ready';
+        elements.introMediaStatus.textContent = asset?.name || 'ยังไม่ได้เลือกไฟล์';
+        elements.introMediaStatus.classList.toggle('has-image', Boolean(asset));
+        elements.clearIntroMediaButton.disabled = !asset;
+      }
+
+      async function restoreIntroMediaAsset() {
+        try { applyIntroMediaAsset(await readBackgroundAsset('showcase-intro-media')); }
+        catch { elements.introMediaStatus.textContent = 'เรียกคืนไฟล์ก่อนเริ่มไม่ได้'; }
+      }
+
+      async function selectIntroMediaAsset(file) {
+        if (!file) return;
+        const extension = file.name.split('.').pop()?.toLowerCase();
+        const validType = ['image/png', 'image/gif', 'image/jpeg'].includes(file.type);
+        const validExtension = ['png', 'gif', 'jpg', 'jpeg'].includes(extension);
+        if (!validType && !validExtension) {
+          showToast('เลือกไฟล์ PNG, GIF หรือ JPG เท่านั้น');
+          elements.introMediaInput.value = '';
+          return;
+        }
+        try {
+          const asset = { blob: file, name: file.name };
+          await storeBackgroundAsset(asset, 'showcase-intro-media');
+          applyIntroMediaAsset(asset);
+          showToast('บันทึกภาพก่อนเริ่มแล้ว');
+        } catch { showToast('บันทึกไฟล์ก่อนเริ่มไม่สำเร็จ'); }
+        finally { elements.introMediaInput.value = ''; }
+      }
+
+      async function restoreBackgroundAsset() {
+        try { applyBackgroundAsset(await readBackgroundAsset()); }
+        catch { elements.backgroundStatus.textContent = 'เรียกคืนรูปไม่ได้'; }
+      }
+
+      async function selectBackgroundAsset(file) {
+        if (!file) return;
+        const extension = file.name.split('.').pop()?.toLowerCase();
+        const validType = ['image/png', 'image/gif', 'image/jpeg'].includes(file.type);
+        const validExtension = ['png', 'gif', 'jpg', 'jpeg'].includes(extension);
+        if (!validType && !validExtension) {
+          showToast('เลือกรูป PNG, GIF หรือ JPG เท่านั้น');
+          elements.backgroundInput.value = '';
+          return;
+        }
+        try {
+          const asset = { blob: file, name: file.name };
+          await storeBackgroundAsset(asset);
+          applyBackgroundAsset(asset);
+          showToast('บันทึกภาพพื้นหลังแล้ว');
+        } catch { showToast('บันทึกภาพไม่สำเร็จ ตรวจสอบพื้นที่จัดเก็บของเบราว์เซอร์'); }
+        finally { elements.backgroundInput.value = ''; }
+      }
+
+      function normalize(value) { return String(value ?? '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('th'); }
+      function allWords() { return [...state.remaining, ...state.used]; }
+      function findWord(id) { return allWords().find(word => word.id === id); }
+      function makeWord(text) { return { id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`, text: String(text).trim(), drawnAt: null }; }
+
+      function render() {
+        const total = state.remaining.length + state.used.length;
+        elements.remainingCount.textContent = state.remaining.length;
+        elements.usedCount.textContent = state.used.length;
+        elements.totalCount.textContent = total;
+        elements.drawNumber.textContent = `รอบที่ ${state.roundNumber} · ${state.contestantType}`;
+        elements.sessionLabel.textContent = state.eventName.trim() || 'พร้อมใช้งาน';
+        elements.eventName.value = state.eventName;
+        elements.contestantType.value = state.contestantType;
+        elements.contestantCount.value = state.contestantCount;
+        elements.contestantType.disabled = state.used.length > 0;
+        elements.contestantCount.disabled = state.used.length > 0;
+        elements.contestantRangePreview.textContent = `${state.contestantType}1–${state.contestantType}${state.contestantCount}`;
+        elements.contestantRoundLabel.textContent = `รอบที่ ${state.roundNumber}`;
+        elements.showcaseColor.value = state.showcaseTextColor;
+        elements.colorValue.textContent = state.showcaseTextColor.toUpperCase();
+        elements.showcaseOverlay.style.setProperty('--showcase-color', state.showcaseTextColor);
+        elements.timerModeInputs.forEach(input => { input.checked = input.value === state.timerMode; });
+        elements.timerDuration.value = formatStopwatchTime(state.timerDurationMs);
+        elements.timerDuration.disabled = state.timerMode !== 'down';
+        elements.timerSetupSummary.textContent = state.timerMode === 'down'
+          ? `จับเวลาถอยหลัง ${formatStopwatchTime(state.timerDurationMs)} · หมดเวลาแล้วบันทึกผลอัตโนมัติ`
+          : 'จับเวลาเดินหน้า · กดจบและบันทึกเมื่อทำเสร็จ';
+        elements.drawButton.disabled = state.remaining.length === 0;
+        elements.drawButton.textContent = state.remaining.length ? 'สุ่มคำถัดไป' : (total ? 'ใช้คำครบแล้ว' : 'เพิ่มคำเพื่อเริ่ม');
+        elements.showcaseButton.disabled = state.remaining.length === 0;
+        elements.undoButton.disabled = state.history.length === 0;
+
+        const current = state.currentId ? findWord(state.currentId) : null;
+        if (current) {
+          elements.currentWord.textContent = current.text;
+          elements.currentSubtitle.textContent = `คำที่ ${state.used.length} · นำออกจากคิวแล้ว`;
+          elements.wordDisplay.classList.remove('is-empty');
+        } else {
+          elements.currentWord.textContent = total ? 'สุ่มคำถัดไป' : 'พร้อมหรือยัง?';
+          elements.currentSubtitle.textContent = total ? 'กดปุ่มด้านล่างเพื่อเริ่มสุ่ม' : 'เพิ่มคำหรือโหลดรายการจาก Excel เพื่อเริ่ม';
+          elements.wordDisplay.classList.add('is-empty');
+        }
+        renderList();
+      }
+
+      function renderList() {
+        const source = activeTab === 'remaining' ? state.remaining : state.used;
+        const query = normalize(elements.searchInput.value);
+        const filtered = source.filter(word => normalize(word.text).includes(query));
+        elements.listCount.textContent = `${source.length} คำ`;
+        elements.remainingTab.setAttribute('aria-selected', String(activeTab === 'remaining'));
+        elements.usedTab.setAttribute('aria-selected', String(activeTab === 'used'));
+        elements.wordList.replaceChildren();
+        if (!filtered.length) {
+          const empty = document.createElement('li');
+          empty.className = 'empty-list';
+          empty.textContent = query ? 'ไม่พบคำที่ค้นหา' : (activeTab === 'remaining' ? 'ยังไม่มีคำในคิว' : 'ยังไม่มีคำที่ใช้แล้ว');
+          elements.wordList.append(empty);
+          return;
+        }
+        filtered.forEach((word, index) => {
+          const item = document.createElement('li');
+          item.className = 'word-item';
+          const text = document.createElement('span');
+          text.className = 'word-item-text';
+          text.textContent = word.text;
+          item.append(text);
+          if (activeTab === 'used') {
+            const meta = document.createElement('span');
+            meta.className = 'word-item-meta';
+            const usedIndex = state.used.findIndex(entry => entry.id === word.id);
+            const duration = Number.isFinite(word.timeUsedMs) ? ` · ${formatStopwatchTime(word.timeUsedMs)}` : '';
+            meta.textContent = `ลำดับ ${usedIndex + 1}${duration}`;
+            item.append(meta);
+          } else {
+            const meta = document.createElement('span');
+            meta.className = 'word-item-meta';
+            meta.textContent = `#${state.remaining.findIndex(entry => entry.id === word.id) + 1}`;
+            item.append(meta);
+          }
+          elements.wordList.append(item);
+        });
+      }
+
+      function showToast(message) {
+        elements.toast.textContent = message;
+        elements.toast.classList.add('is-visible');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => elements.toast.classList.remove('is-visible'), 2600);
+      }
+
+      function addWords(values) {
+        const existing = new Set(allWords().map(word => normalize(word.text)));
+        let added = 0;
+        let skipped = 0;
+        values.forEach(value => {
+          const text = String(value ?? '').trim().replace(/\s+/g, ' ');
+          if (!text) return;
+          const key = normalize(text);
+          if (existing.has(key)) { skipped++; return; }
+          existing.add(key);
+          state.remaining.push(makeWord(text));
+          added++;
+        });
+        persist();
+        render();
+        scheduleSharedReportSave();
+        return { added, skipped };
+      }
+
+      function drawWord() {
+        if (!state.remaining.length) return;
+        const index = Math.floor(Math.random() * state.remaining.length);
+        const [word] = state.remaining.splice(index, 1);
+        word.drawnAt = new Date().toISOString();
+        word.recipientId = `${state.contestantType}${(state.used.length % state.contestantCount) + 1}`;
+        state.used.push(word);
+        state.history.push(word.id);
+        state.currentId = word.id;
+        persist();
+        render();
+        scheduleSharedReportSave();
+      }
+
+      function rollNextWord() {
+        if (!state.remaining.length) {
+          closeShowcase();
+          showToast('ไม่มีคำเหลือในคิว');
+          return;
+        }
+        const index = rollingIndex < 0
+          ? Math.floor(Math.random() * state.remaining.length)
+          : (rollingIndex + 1) % state.remaining.length;
+        rollingIndex = index;
+        const word = state.remaining[index];
+        rollingId = word.id;
+        elements.showcaseWord.textContent = word.text;
+      }
+
+      async function startShowcase() {
+        if (!state.remaining.length || showcaseMode !== 'closed') return;
+        clearTimeout(introFadeTimer);
+        introFadeTimer = null;
+        resetStopwatch();
+        elements.stopwatchPanel.hidden = true;
+        elements.showcaseWord.textContent = '';
+        elements.introMediaImage.classList.remove('is-fading-out', 'is-fading-in');
+        elements.introMediaImage.hidden = !introMediaObjectUrl;
+        elements.showcaseHint.textContent = 'กด Spacebar เพื่อเริ่มสุ่มคีย์เวิร์ด';
+        elements.showcaseHint.hidden = false;
+        elements.showcaseOverlay.setAttribute('aria-label', 'พื้นหลังพร้อมแล้ว กด Space เพื่อเริ่มสุ่มคำ กด Escape เพื่อออก');
+        elements.showcaseOverlay.hidden = false;
+        showcaseMode = 'ready';
+        try {
+          if (document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen();
+        } catch { /* The fixed overlay still fills the browser viewport. */ }
+        if (showcaseMode !== 'closed') elements.showcaseOverlay.focus({ preventScroll: true });
+      }
+
+      function resumeShowcaseRoll() {
+        if (!state.remaining.length || !['ready', 'stopped'].includes(showcaseMode)) return;
+        resetStopwatch();
+        elements.stopwatchPanel.hidden = true;
+        showcaseMode = 'rolling';
+        if (introMediaObjectUrl && !elements.introMediaImage.hidden) {
+          elements.introMediaImage.classList.add('is-fading-out');
+          clearTimeout(introFadeTimer);
+          introFadeTimer = setTimeout(() => {
+            elements.introMediaImage.hidden = true;
+            elements.introMediaImage.classList.remove('is-fading-out');
+            introFadeTimer = null;
+          }, 850);
+        } else {
+          elements.introMediaImage.hidden = true;
+        }
+        elements.showcaseHint.textContent = 'กด Spacebar เพื่อหยุดเลือกคำ';
+        elements.showcaseHint.hidden = false;
+        rollingIndex = -1;
+        elements.showcaseOverlay.setAttribute('aria-live', 'off');
+        elements.showcaseOverlay.setAttribute('aria-label', 'คำที่กำลังหมุน คลิกหรือกด Space เพื่อหยุด กด Escape เพื่อออก');
+        rollNextWord();
+        rollingTimer = setInterval(rollNextWord, 65);
+      }
+
+      function toggleShowcaseRoll() {
+        if (showcaseMode === 'rolling') stopShowcaseRoll();
+        else if (showcaseMode === 'ready' || showcaseMode === 'stopped') resumeShowcaseRoll();
+      }
+
+      function returnToIntro() {
+        if (showcaseMode !== 'stopped') return;
+        clearTimeout(introFadeTimer);
+        introFadeTimer = null;
+        resetStopwatch();
+        elements.stopwatchPanel.hidden = true;
+        elements.showcaseWord.textContent = '';
+        elements.introMediaImage.classList.remove('is-fading-out');
+        elements.introMediaImage.hidden = !introMediaObjectUrl;
+        if (introMediaObjectUrl) {
+          elements.introMediaImage.classList.remove('is-fading-in');
+          introFadeTimer = setTimeout(() => {
+            elements.introMediaImage.classList.add('is-fading-in');
+            introFadeTimer = null;
+          }, 20);
+        }
+        elements.showcaseHint.textContent = 'กด Spacebar เพื่อเริ่มสุ่มคีย์เวิร์ด';
+        elements.showcaseHint.hidden = false;
+        elements.showcaseOverlay.setAttribute('aria-live', 'off');
+        elements.showcaseOverlay.setAttribute('aria-label', 'พื้นหลังพร้อมแล้ว กด Space เพื่อเริ่มสุ่มคำ กด Escape เพื่อออก');
+        rollingIndex = -1;
+        rollingId = null;
+        showcaseMode = 'ready';
+      }
+
+      function formatStopwatchTime(milliseconds) {
+        const totalCentiseconds = Math.max(0, Math.floor(milliseconds / 10));
+        const totalMinutes = Math.floor(totalCentiseconds / 6000);
+        const seconds = Math.floor(totalCentiseconds / 100) % 60;
+        const centiseconds = totalCentiseconds % 100;
+        return `${String(totalMinutes).padStart(2, '0')}.${String(seconds).padStart(2, '0')}.${String(centiseconds).padStart(2, '0')}`;
+      }
+
+      function parseStopwatchTime(value) {
+        const match = String(value).trim().match(/^(\d{1,5})\.([0-5]\d)\.(\d{2})$/);
+        if (!match) return null;
+        const duration = Number(match[1]) * 60000 + Number(match[2]) * 1000 + Number(match[3]) * 10;
+        return Number.isSafeInteger(duration) && duration > 0 ? duration : null;
+      }
+
+      function updateStopwatch() {
+        const elapsed = stopwatchStartedAt === null
+          ? stopwatchElapsed
+          : stopwatchElapsed + (performance.now() - stopwatchStartedAt);
+        const countdownDuration = state.timerDurationMs;
+        if (state.timerMode === 'down' && stopwatchStartedAt !== null && elapsed >= countdownDuration) {
+          stopwatchElapsed = countdownDuration;
+          stopwatchStartedAt = null;
+          clearInterval(stopwatchInterval);
+          stopwatchInterval = null;
+          elements.stopwatchToggle.textContent = 'หมดเวลา';
+          elements.stopwatchDisplay.classList.remove('is-countdown-warning');
+          elements.stopwatchDisplay.classList.add('is-countdown-expired');
+          elements.stopwatchDisplay.value = formatStopwatchTime(0);
+          finishStopwatch();
+          return;
+        }
+        const displayedTime = state.timerMode === 'down'
+          ? Math.max(0, countdownDuration - elapsed)
+          : elapsed;
+        elements.stopwatchDisplay.value = formatStopwatchTime(displayedTime);
+        const showCountdownWarning = state.timerMode === 'down'
+          && stopwatchStartedAt !== null
+          && displayedTime > 0
+          && displayedTime <= 10000;
+        elements.stopwatchDisplay.classList.toggle('is-countdown-warning', showCountdownWarning);
+      }
+
+      function toggleStopwatch() {
+        if (stopwatchFinalized) return;
+        if (stopwatchStartedAt === null) {
+          stopwatchWasStarted = true;
+          stopwatchStartedAt = performance.now();
+          elements.stopwatchToggle.textContent = 'พักเวลา';
+          elements.stopwatchStatus.textContent = state.timerMode === 'down'
+            ? `กำลังนับถอยหลัง · ${formatStopwatchTime(state.timerDurationMs)}`
+            : 'กำลังจับเวลาเดินหน้า';
+          stopwatchInterval = setInterval(updateStopwatch, 10);
+          return;
+        }
+        pauseStopwatch();
+        elements.stopwatchStatus.textContent = 'พักชั่วคราว · ยังไม่บันทึก';
+      }
+
+      function pauseStopwatch() {
+        if (stopwatchStartedAt === null) return;
+        stopwatchElapsed += performance.now() - stopwatchStartedAt;
+        stopwatchStartedAt = null;
+        clearInterval(stopwatchInterval);
+        stopwatchInterval = null;
+        elements.stopwatchToggle.textContent = 'เริ่มต่อ';
+        updateStopwatch();
+      }
+
+      function finishStopwatch() {
+        if (stopwatchFinalized) return;
+        if (!stopwatchWasStarted) {
+          showToast('เริ่มจับเวลาก่อนบันทึกเวลา');
+          return;
+        }
+        pauseStopwatch();
+        elements.stopwatchDisplay.classList.remove('is-countdown-warning');
+        stopwatchElapsed = Math.round(stopwatchElapsed);
+        const word = state.used.find(entry => entry.id === state.currentId);
+        if (!word) return;
+        word.timeUsedMs = stopwatchElapsed;
+        stopwatchFinalized = true;
+        persist();
+        renderList();
+        scheduleSharedReportSave();
+        elements.stopwatchToggle.textContent = 'บันทึกแล้ว';
+        elements.stopwatchToggle.disabled = true;
+        elements.stopwatchReset.disabled = true;
+        elements.stopwatchSave.disabled = true;
+        elements.stopwatchStatus.textContent = `เวลาที่ใช้ ${formatStopwatchTime(stopwatchElapsed)} · บันทึกแล้วในเครื่อง`;
+      }
+
+      function resetStopwatch() {
+        clearInterval(stopwatchInterval);
+        stopwatchInterval = null;
+        stopwatchElapsed = 0;
+        stopwatchStartedAt = null;
+        stopwatchFinalized = false;
+        stopwatchWasStarted = false;
+        elements.stopwatchToggle.textContent = 'เริ่มจับเวลา';
+        elements.stopwatchToggle.disabled = false;
+        elements.stopwatchReset.disabled = false;
+        elements.stopwatchSave.disabled = false;
+        elements.stopwatchStatus.textContent = 'เริ่มจับเวลาเพื่อบันทึกผล';
+        elements.stopwatchDisplay.classList.remove('is-countdown-warning', 'is-countdown-expired');
+        updateStopwatch();
+      }
+
+      function stopShowcaseRoll() {
+        if (showcaseMode !== 'rolling') return;
+        clearInterval(rollingTimer);
+        rollingTimer = null;
+        showcaseMode = 'stopped';
+        resetStopwatch();
+        elements.stopwatchPanel.hidden = false;
+        const index = state.remaining.findIndex(word => word.id === rollingId);
+        if (index < 0) {
+          closeShowcase();
+          return;
+        }
+        const [word] = state.remaining.splice(index, 1);
+        word.drawnAt = new Date().toISOString();
+        word.recipientId = `${state.contestantType}${(state.used.length % state.contestantCount) + 1}`;
+        state.used.push(word);
+        state.history.push(word.id);
+        state.currentId = word.id;
+        persist();
+        render();
+        scheduleSharedReportSave();
+        elements.showcaseWord.textContent = word.text;
+        clearTimeout(introFadeTimer);
+        introFadeTimer = null;
+        elements.introMediaImage.hidden = true;
+        elements.introMediaImage.classList.remove('is-fading-out');
+        elements.showcaseHint.textContent = state.remaining.length
+          ? 'กด Spacebar เพื่อสุ่มคำถัดไป หรือกด Escape เพื่อออก'
+          : 'ไม่มีคำเหลือในคิว · กด Escape เพื่อออก';
+        elements.showcaseHint.hidden = true;
+        elements.showcaseOverlay.setAttribute('aria-live', 'polite');
+        const nextAction = state.remaining.length
+          ? 'คลิกหรือกด Space เพื่อสุ่มคำถัดไป กด Escape เพื่อออก'
+          : 'ไม่มีคำเหลือ กด Escape เพื่อออก';
+        elements.showcaseOverlay.setAttribute('aria-label', `เลือกคำ ${word.text} แล้ว ${nextAction}`);
+      }
+
+      function closeShowcase() {
+        showcaseMode = 'closed';
+        clearInterval(rollingTimer);
+        rollingTimer = null;
+        clearTimeout(introFadeTimer);
+        introFadeTimer = null;
+        resetStopwatch();
+        elements.stopwatchPanel.hidden = true;
+        elements.introMediaImage.hidden = true;
+        elements.introMediaImage.classList.remove('is-fading-out');
+        elements.showcaseHint.hidden = true;
+        rollingIndex = -1;
+        rollingId = null;
+        elements.showcaseOverlay.hidden = true;
+        if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+        elements.showcaseButton.focus({ preventScroll: true });
+      }
+
+      function undoDraw() {
+        const lastId = state.history.pop();
+        if (!lastId) return;
+        const index = state.used.findIndex(word => word.id === lastId);
+        if (index >= 0) {
+          const [word] = state.used.splice(index, 1);
+          word.drawnAt = null;
+          state.remaining.unshift(word);
+        }
+        state.currentId = state.history[state.history.length - 1] || null;
+        persist();
+        render();
+        scheduleSharedReportSave();
+        showToast('คืนคำล่าสุดกลับเข้าคิวแล้ว');
+      }
+
+      async function resetRound() {
+        if (!state.used.length) { showToast('ยังไม่มีคำที่ใช้ในรอบนี้'); return; }
+        if (!confirm(`เริ่มรอบใหม่และคืนคำที่ใช้แล้ว ${state.used.length} คำกลับเข้าคิว?`)) return;
+        clearTimeout(reportSyncTimer);
+        try {
+          await ensureSharedReport();
+          await saveSharedReport();
+        } catch {
+          showToast('บันทึกรอบปัจจุบันไม่สำเร็จ จึงยังไม่เริ่มรอบใหม่');
+          return;
+        }
+        state.remaining = [...state.used, ...state.remaining].map(word => ({ ...word, drawnAt: null }));
+        state.used = [];
+        state.history = [];
+        state.currentId = null;
+        state.roundNumber += 1;
+        state.share = null;
+        persist();
+        render();
+        showToast('เริ่มรอบใหม่แล้ว');
+      }
+
+      function clearAll() {
+        if (!allWords().length) { showToast('คลังคำว่างอยู่แล้ว'); return; }
+        if (!confirm('ลบคำทั้งหมดออกจากคลัง? การกระทำนี้ย้อนกลับไม่ได้')) return;
+        state.remaining = [];
+        state.used = [];
+        state.history = [];
+        state.currentId = null;
+        persist();
+        render();
+        scheduleSharedReportSave();
+        showToast('ล้างคลังคำแล้ว');
+      }
+
+      function parseSheetRows(rows) {
+        if (!rows.length) return [];
+        const headerIndex = rows.findIndex(row => row.some(cell => ['keyword', 'คำ', 'คำศัพท์', 'คำสุ่ม', 'word'].includes(normalize(cell))));
+        const start = headerIndex >= 0 ? headerIndex + 1 : 0;
+        const header = headerIndex >= 0 ? rows[headerIndex] : [];
+        const keywordColumn = headerIndex >= 0 ? header.findIndex(cell => ['keyword', 'คำ', 'คำศัพท์', 'คำสุ่ม', 'word'].includes(normalize(cell))) : -1;
+        return rows.slice(start).map(row => keywordColumn >= 0 ? row[keywordColumn] : row.find(cell => String(cell ?? '').trim() !== '')).filter(value => String(value ?? '').trim() !== '');
+      }
+
+      async function importFile(file) {
+        elements.uploadStatus.classList.remove('error');
+        if (!file) return;
+        if (!window.XLSX) {
+          elements.uploadStatus.textContent = 'โหลดตัวอ่าน Excel ไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่';
+          elements.uploadStatus.classList.add('error');
+          return;
+        }
+        try {
+          const isCsv = /\.csv$/i.test(file.name) || file.type === 'text/csv';
+          const workbook = isCsv
+            ? XLSX.read(await file.text(), { type: 'string', codepage: 65001 })
+            : XLSX.read(await file.arrayBuffer(), { type: 'array' });
+          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+          if (!firstSheet) throw new Error('ไม่พบแผ่นงานในไฟล์');
+          const values = parseSheetRows(XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' }));
+          if (!values.length) throw new Error('ไม่พบคำในแผ่นงานแรก');
+          const result = addWords(values);
+          elements.uploadStatus.textContent = `เพิ่ม ${result.added} คำ${result.skipped ? ` · ข้ามคำซ้ำ ${result.skipped} คำ` : ''}`;
+          showToast(`นำเข้าแล้ว ${result.added} คำ`);
+        } catch (error) {
+          elements.uploadStatus.textContent = error.message || 'อ่านไฟล์ไม่สำเร็จ';
+          elements.uploadStatus.classList.add('error');
+        } finally { elements.fileInput.value = ''; }
+      }
+
+      function downloadTemplate() {
+        if (!window.XLSX) { showToast('โหลดตัวสร้าง Excel ไม่สำเร็จ ตรวจสอบอินเทอร์เน็ต'); return; }
+        const sheet = XLSX.utils.aoa_to_sheet([['คำ'], ['คำตัวอย่าง 1'], ['คำตัวอย่าง 2'], ['คำตัวอย่าง 3']]);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, sheet, 'รายการคำ');
+        XLSX.writeFile(workbook, 'template-keywords.xlsx');
+      }
+
+      elements.drawButton.addEventListener('click', drawWord);
+      elements.shareReportButton.addEventListener('click', showSharedReportLink);
+      document.querySelector('#closeShareDialog').addEventListener('click', () => elements.shareDialog.close());
+      document.querySelector('#copyShareUrl').addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(elements.shareUrl.value);
+          showToast('คัดลอกลิงก์แชร์แล้ว');
+        } catch {
+          elements.shareUrl.select();
+          document.execCommand('copy');
+          showToast('คัดลอกลิงก์แชร์แล้ว');
+        }
+      });
+      elements.showcaseButton.addEventListener('click', startShowcase);
+      elements.showcaseOverlay.addEventListener('click', event => {
+        if (event.detail > 0 && showcaseMode !== 'ready') toggleShowcaseRoll();
+      });
+      elements.stopwatchToggle.addEventListener('click', toggleStopwatch);
+      elements.stopwatchReset.addEventListener('click', resetStopwatch);
+      elements.stopwatchSave.addEventListener('click', finishStopwatch);
+      document.addEventListener('keydown', event => {
+        if (showcaseMode === 'closed') return;
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          closeShowcase();
+        } else if (event.target.closest('.stopwatch-panel')) {
+          return;
+        } else if (event.key === 'Enter' && showcaseMode === 'stopped') {
+          event.preventDefault();
+          if (event.repeat) return;
+          returnToIntro();
+        } else if ((event.code === 'Space' || event.key === 'Enter') && showcaseMode !== 'closed') {
+          event.preventDefault();
+          if (event.repeat) return;
+          toggleShowcaseRoll();
+        }
+      });
+      document.addEventListener('fullscreenchange', () => {
+        if (!document.fullscreenElement && showcaseMode !== 'closed') closeShowcase();
+      });
+      elements.undoButton.addEventListener('click', undoDraw);
+      document.querySelector('#resetButton').addEventListener('click', resetRound);
+      document.querySelector('#clearButton').addEventListener('click', clearAll);
+      elements.remainingTab.addEventListener('click', () => { activeTab = 'remaining'; renderList(); });
+      elements.usedTab.addEventListener('click', () => { activeTab = 'used'; renderList(); });
+      elements.searchInput.addEventListener('input', renderList);
+      elements.addForm.addEventListener('submit', event => {
+        event.preventDefault();
+        const text = elements.addInput.value.trim();
+        if (!text) return;
+        const result = addWords([text]);
+        elements.addInput.value = '';
+        elements.addInput.focus();
+        if (result.added) showToast(`เพิ่ม “${text}” แล้ว`);
+        else showToast('คำนี้มีอยู่ในคลังแล้ว');
+      });
+      elements.eventName.addEventListener('input', event => {
+        state.eventName = event.target.value;
+        persist();
+        scheduleSharedReportSave();
+        elements.sessionLabel.textContent = state.eventName.trim() || 'พร้อมใช้งาน';
+      });
+      elements.contestantType.addEventListener('change', event => {
+        if (state.used.length) return;
+        const contestantType = event.target.value.trim().toUpperCase();
+        if (!/^[A-Z]{1,4}$/.test(contestantType)) {
+          showToast('พิมพ์ตัวอักษรภาษาอังกฤษ 1–4 ตัว เช่น M หรือ G');
+          render();
+          return;
+        }
+        state.contestantType = contestantType;
+        if (state.share) state.share.contestantType = contestantType;
+        persist();
+        render();
+        scheduleSharedReportSave();
+      });
+      elements.contestantCount.addEventListener('change', event => {
+        if (state.used.length) return;
+        const contestantCount = Number(event.target.value);
+        if (!Number.isInteger(contestantCount) || contestantCount < 1 || contestantCount > 14) {
+          showToast('ระบุจำนวนลำดับตั้งแต่ 1 ถึง 14');
+          render();
+          return;
+        }
+        state.contestantCount = contestantCount;
+        if (state.share) state.share.contestantCount = contestantCount;
+        persist();
+        render();
+        scheduleSharedReportSave();
+      });
+      document.querySelector('#chooseFileButton').addEventListener('click', () => elements.fileInput.click());
+      document.querySelector('#templateButton').addEventListener('click', downloadTemplate);
+      elements.fileInput.addEventListener('change', event => importFile(event.target.files[0]));
+      document.querySelector('#chooseBackgroundButton').addEventListener('click', () => elements.backgroundInput.click());
+      elements.backgroundInput.addEventListener('change', event => selectBackgroundAsset(event.target.files[0]));
+      elements.clearBackgroundButton.addEventListener('click', async () => {
+        try {
+          await deleteBackgroundAsset();
+          applyBackgroundAsset(null);
+          showToast('ล้างภาพพื้นหลังแล้ว');
+        } catch { showToast('ลบภาพพื้นหลังไม่สำเร็จ'); }
+      });
+      document.querySelector('#chooseIntroMediaButton').addEventListener('click', () => elements.introMediaInput.click());
+      elements.introMediaInput.addEventListener('change', event => selectIntroMediaAsset(event.target.files[0]));
+      elements.clearIntroMediaButton.addEventListener('click', async () => {
+        try {
+          await deleteBackgroundAsset('showcase-intro-media');
+          applyIntroMediaAsset(null);
+          showToast('ล้างภาพก่อนเริ่มแล้ว');
+        } catch { showToast('ล้างภาพก่อนเริ่มไม่สำเร็จ'); }
+      });
+      elements.showcaseColor.addEventListener('input', event => {
+        state.showcaseTextColor = event.target.value;
+        elements.colorValue.textContent = state.showcaseTextColor.toUpperCase();
+        elements.showcaseOverlay.style.setProperty('--showcase-color', state.showcaseTextColor);
+        persist();
+      });
+      elements.timerModeInputs.forEach(input => input.addEventListener('change', () => {
+        if (!input.checked) return;
+        state.timerMode = input.value;
+        persist();
+        render();
+        updateStopwatch();
+      }));
+      elements.timerDuration.addEventListener('change', event => {
+        const durationMs = parseStopwatchTime(event.target.value);
+        if (durationMs === null) {
+          event.target.value = formatStopwatchTime(state.timerDurationMs);
+          showToast('กรอกเวลาแบบ นาที:วินาที:มิลลิวินาที เช่น 00:10:250');
+          return;
+        }
+        state.timerDurationMs = durationMs;
+        persist();
+        render();
+        updateStopwatch();
+      });
+      elements.dropZone.addEventListener('dragover', event => { event.preventDefault(); elements.dropZone.classList.add('drag-over'); });
+      elements.dropZone.addEventListener('dragleave', () => elements.dropZone.classList.remove('drag-over'));
+      elements.dropZone.addEventListener('drop', event => {
+        event.preventDefault();
+        elements.dropZone.classList.remove('drag-over');
+        importFile(event.dataTransfer.files[0]);
+      });
+      window.addEventListener('storage', event => {
+        if (event.key === STORAGE_KEY) { state = loadState(); render(); }
+      });
+      render();
+      restoreBackgroundAsset();
+      restoreIntroMediaAsset();
+    })();
+  </script>
+</body>
+</html>
